@@ -2,8 +2,17 @@
 """
     Constant collection
 """
+from futu.common.pb import Qot_GetCodeChange_pb2
+from futu.common.pb import Qot_StockFilter_pb2
+from futu.common.pb import Qot_ModifyUserSecurity_pb2
+from futu.common.pb import GetDelayStatistics_pb2
+from futu.common.pb import GetUserInfo_pb2
+from futu.common.pb import Common_pb2
+from futu.common.pb import Verification_pb2
+from futu.common.pb import Qot_GetReference_pb2
+from futu.common.pb import Qot_Common_pb2
+from futu.common.pb import Trd_Common_pb2
 from copy import copy
-from enum import Enum, unique
 from abc import abstractmethod
 
 
@@ -20,6 +29,26 @@ class FtEnum(object):
     def load_dic(self):
         return {
         }
+
+    @classmethod
+    def if_has_key(cls, str_value):
+        obj = cls()
+        if not isinstance(str_value, str):
+            return False
+        return str_value in obj.str_dic
+
+    @classmethod
+    def get_all_keys(cls):
+        obj = cls()
+        return ",".join([x for x in obj.str_dic.keys()])
+
+    @classmethod
+    def get_all_key_list(cls):
+        obj = cls()
+        key_list = list()
+        for x in obj.str_dic.keys():
+            key_list.append(x)
+        return key_list
 
     @classmethod
     def to_number(cls, str_value):
@@ -54,7 +83,6 @@ class FtEnum(object):
             return "N/A"
 
 
-
 RET_OK = 0
 RET_ERROR = -1
 ERROR_STR_PREFIX = 'ERROR. '
@@ -85,6 +113,8 @@ CLIENT_VERSION = 300
 DEFAULT_INIT_PRI_KEY_FILE = "conn_key.txt"
 
 # 协议格式
+
+
 class ProtoFMT(object):
     """
     协议格式类型
@@ -97,6 +127,7 @@ class ProtoFMT(object):
     Protobuf = 0
     Json = 1
 
+
 # 默认的协议格式 : set_proto_fmt 更改
 DEFULAT_PROTO_FMT = ProtoFMT.Protobuf
 
@@ -104,6 +135,8 @@ DEFULAT_PROTO_FMT = ProtoFMT.Protobuf
 API_PROTO_VER = int(0)
 
 # 市场标识字符串
+
+
 class Market(object):
     """
     标识不同的行情市场，股票名称的前缀复用该字符串,如 **'HK.00700'**, **'HK_FUTURE.999010'**
@@ -128,6 +161,7 @@ class Market(object):
     HK_FUTURE = "HK_FUTURE"
     NONE = "N/A"
 
+
 MKT_MAP = {
     Market.NONE: 0,
     Market.HK: 1,
@@ -137,8 +171,6 @@ MKT_MAP = {
     Market.SZ: 22
 }
 
-from futu.common.pb import Trd_Common_pb2
-from futu.common.pb import Qot_Common_pb2
 
 QOT_MARKET_TO_TRD_SEC_MARKET_MAP = {
     Qot_Common_pb2.QotMarket_Unknown: Trd_Common_pb2.TrdSecMarket_Unknown,
@@ -150,7 +182,7 @@ QOT_MARKET_TO_TRD_SEC_MARKET_MAP = {
 }
 
 
-#print(type(Trd_Common_pb2.ModifyOrderOp_Delete))
+# print(type(Trd_Common_pb2.ModifyOrderOp_Delete))
 
 # 市场状态
 class MarketState:
@@ -266,13 +298,14 @@ class SecurityType(object):
     DRVT = "DRVT"
     NONE = "N/A"
 
+
 SEC_TYPE_MAP = {
     SecurityType.STOCK: 3,
     SecurityType.IDX: 6,
     SecurityType.ETF: 4,
     SecurityType.WARRANT: 5,
     SecurityType.BOND: 1,
-    SecurityType.DRVT:8,
+    SecurityType.DRVT: 8,
     SecurityType.NONE: 0
 }
 
@@ -357,6 +390,8 @@ SUBTYPE_MAP = {
 }
 
 # k线类型
+
+
 class KLType(object):
     """
     k线类型定义
@@ -390,6 +425,7 @@ class KLType(object):
     K_1M = "K_1M"
     K_QUARTER = "K_QUARTER"
     K_YEAR = "K_YEAR"
+
 
 KTYPE_MAP = {
     KLType.K_1M: 1,
@@ -448,6 +484,7 @@ class AuType(object):
     QFQ = "qfq"
     HFQ = "hfq"
     NONE = "None"
+
 
 AUTYPE_MAP = {AuType.NONE: 0, AuType.QFQ: 1, AuType.HFQ: 2}
 
@@ -629,7 +666,7 @@ PLATE_CLASS_MAP = {
     Plate.OTHER: 4
 }
 
-PLATE_TYPE_ID_TO_NAME= [
+PLATE_TYPE_ID_TO_NAME = [
     "ALL",
     "INDUSTRY",
     "REGION",
@@ -638,6 +675,8 @@ PLATE_TYPE_ID_TO_NAME= [
 ]
 
 # 股票持有者类别
+
+
 class StockHolder(object):
     """
     持有者类别
@@ -708,6 +747,7 @@ OPTION_COND_TYPE_CLASS_MAP = {
     OptionCondType.OUTSIDE: 2
 }
 
+
 class ProtoId(object):
     InitConnect = 1001  # 初始化连接
     GetGlobalState = 1002  # 获取全局状态
@@ -716,7 +756,6 @@ class ProtoId(object):
     GetUserInfo = 1005  # 获取用户信息
     Verification = 1006  # 请求或输入验证码
     GetDelayStatistics = 1007  # 获取延迟统计
-
 
     Trd_GetAccList = 2001  # 获取业务账户列表
     Trd_UnlockTrade = 2005  # 解锁或锁定交易
@@ -758,7 +797,7 @@ class ProtoId(object):
     Qot_GetHistoryKL = 3100  # 获取历史K线
     Qot_GetHistoryKLPoints = 3101  # 获取多只股票历史单点K线
     Qot_GetRehab = 3102  # 获取复权信息
-    Qot_RequestHistoryKL = 3103 # 拉取历史K线
+    Qot_RequestHistoryKL = 3103  # 拉取历史K线
     Qot_RequestHistoryKLQuota = 3104  # 拉取历史K线已经用掉的额度
     Qot_RequestRehab = 3105  # 获取除权信息
 
@@ -777,8 +816,15 @@ class ProtoId(object):
     Qot_GetOrderDetail = 3016           # 获取委托明细
     Qot_UpdateOrderDetail = 3017        # 推送委托明细
 
-    Qot_GetWarrantData = 3210        # 拉取涡轮信息
+    Qot_GetWarrantData = 3210          # 拉取涡轮信息
+    Qot_GetCapitalFlow = 3211          # 获取资金流向
+    Qot_GetCapitalDistribution = 3212  # 获取资金分布
 
+    Qot_GetUserSecurity = 3213  # 获取自选股分组下的股票
+    Qot_ModifyUserSecurity = 3214  # 修改自选股分组下的股票
+    Qot_StockFilter = 3215   # 条件选股
+    Qot_GetCodeChange = 3216   # 代码变换
+    Qot_GetIpoList = 3217  # 获取新股Ipo
     All_PushId = [Notify, KeepAlive, Trd_UpdateOrder, Trd_UpdateOrderFill, Qot_UpdateBroker,
                   Qot_UpdateOrderBook, Qot_UpdateKL, Qot_UpdateRT, Qot_UpdateBasicQot, Qot_UpdateTicker]
 
@@ -792,11 +838,13 @@ class DarkStatus:
     TRADING = 'TRADING'
     END = 'END'
 
+
 DARK_STATUS_MAP = {
     DarkStatus.NONE: Qot_Common_pb2.DarkStatus_None,
     DarkStatus.TRADING: Qot_Common_pb2.DarkStatus_Trading,
     DarkStatus.END: Qot_Common_pb2.DarkStatus_End
 }
+
 
 class PushDataType:
     NONE = 'N/A'
@@ -804,12 +852,14 @@ class PushDataType:
     BYDISCONN = 'BYDISCONN'
     CACHE = 'CACHE'
 
+
 PUSH_DATA_TYPE_MAP = {
     PushDataType.NONE: Qot_Common_pb2.PushDataType_Unknow,
     PushDataType.REALTIME: Qot_Common_pb2.PushDataType_Realtime,
     PushDataType.BYDISCONN: Qot_Common_pb2.PushDataType_ByDisConn,
     PushDataType.CACHE: Qot_Common_pb2.PushDataType_Cache
 }
+
 
 class TickerType:
     UNKNOWN = 'UNKNOWN'
@@ -870,7 +920,7 @@ TICKER_TYPE_MAP = {
     TickerType.T: Qot_Common_pb2.TickerType_T,
     TickerType.EXTENDED_TRADING_HOURS: Qot_Common_pb2.TickerType_ExtendedTradingHours,
     TickerType.CONTINGENT: Qot_Common_pb2.TickerType_Contingent,
-    TickerType.AVERAGE_PRICE: Qot_Common_pb2.TickerType_AveragePrice,
+    TickerType.AVERAGE_PRICE: Qot_Common_pb2.TickerType_AvgPrice,
     TickerType.OTC_SOLD: Qot_Common_pb2.TickerType_OTCSold,
     TickerType.ODD_LOT_CROSS_MARKET: Qot_Common_pb2.TickerType_OddLotCrossMarket,
     TickerType.DERIVATIVELY_PRICED: Qot_Common_pb2.TickerType_DerivativelyPriced,
@@ -888,16 +938,22 @@ class QUOTE(object):
     REV_SUBTYPE_MAP = {SUBTYPE_MAP[x]: x for x in SUBTYPE_MAP}
     REV_KTYPE_MAP = {KTYPE_MAP[x]: x for x in KTYPE_MAP}
     REV_AUTYPE_MAP = {AUTYPE_MAP[x]: x for x in AUTYPE_MAP}
-    REV_KLDATA_STATUS_MAP = {KLDATA_STATUS_MAP[x]: x for x in KLDATA_STATUS_MAP}
+    REV_KLDATA_STATUS_MAP = {
+        KLDATA_STATUS_MAP[x]: x for x in KLDATA_STATUS_MAP}
     REV_TICKER_DIRECTION = {TICKER_DIRECTION[x]: x for x in TICKER_DIRECTION}
     REV_MARKET_STATE_MAP = {MARKET_STATE_MAP[x]: x for x in MARKET_STATE_MAP}
     REV_DARK_STATUS_MAP = {DARK_STATUS_MAP[x]: x for x in DARK_STATUS_MAP}
-    REV_PUSH_DATA_TYPE_MAP = {PUSH_DATA_TYPE_MAP[x]: x for x in PUSH_DATA_TYPE_MAP}
+    REV_PUSH_DATA_TYPE_MAP = {
+        PUSH_DATA_TYPE_MAP[x]: x for x in PUSH_DATA_TYPE_MAP}
     REV_TICKER_TYPE_MAP = {TICKER_TYPE_MAP[x]: x for x in TICKER_TYPE_MAP}
-    REV_OPTION_TYPE_CLASS_MAP = {OPTION_TYPE_CLASS_MAP[x]: x for x in OPTION_TYPE_CLASS_MAP}
-    REV_OPTION_COND_TYPE_CLASS_MAP = {OPTION_COND_TYPE_CLASS_MAP[x]: x for x in OPTION_COND_TYPE_CLASS_MAP}
+    REV_OPTION_TYPE_CLASS_MAP = {
+        OPTION_TYPE_CLASS_MAP[x]: x for x in OPTION_TYPE_CLASS_MAP}
+    REV_OPTION_COND_TYPE_CLASS_MAP = {
+        OPTION_COND_TYPE_CLASS_MAP[x]: x for x in OPTION_COND_TYPE_CLASS_MAP}
 
 # sys notify info
+
+
 class SysNotifyType(object):
     """
     系统异步通知类型定义
@@ -909,10 +965,19 @@ class SysNotifyType(object):
     """
     NONE = "N/A"
     GTW_EVENT = "GTW_EVENT"
+    PROGRAM_STATUS = "PROGRAM_STATUS"
+    CONN_STATUS = "CONN_STATUS"
+    QOT_RIGHT = "QOT_RIGHT"
+    API_LEVEL = "API_LEVEL"
 
 
 SYS_EVENT_TYPE_MAP = {
-    SysNotifyType.NONE: 0, SysNotifyType.GTW_EVENT: 1
+    SysNotifyType.NONE: 0,
+    SysNotifyType.GTW_EVENT: 1,
+    SysNotifyType.PROGRAM_STATUS: 2,
+    SysNotifyType.CONN_STATUS: 3,
+    SysNotifyType.QOT_RIGHT: 4,
+    SysNotifyType.API_LEVEL: 5
 }
 
 
@@ -966,7 +1031,7 @@ class GtwEventType(object):
     AppDataNotExist = "AppDataNotExist"
     NessaryDataMissing = "NessaryDataMissing"
     TradePwdChanged = "TradePwdChanged"
-    EnableDeviceLock="EnableDeviceLock"
+    EnableDeviceLock = "EnableDeviceLock"
 
 
 GTW_EVENT_MAP = {
@@ -990,7 +1055,8 @@ GTW_EVENT_MAP = {
 
 
 class SysNoitfy(object):
-    REV_SYS_EVENT_TYPE_MAP = {SYS_EVENT_TYPE_MAP[x]: x for x in SYS_EVENT_TYPE_MAP}
+    REV_SYS_EVENT_TYPE_MAP = {
+        SYS_EVENT_TYPE_MAP[x]: x for x in SYS_EVENT_TYPE_MAP}
     REV_GTW_EVENT_MAP = {GTW_EVENT_MAP[x]: x for x in GTW_EVENT_MAP}
 
 
@@ -1006,6 +1072,7 @@ class TrdEnv(object):
     """
     REAL = "REAL"
     SIMULATE = "SIMULATE"
+
 
 TRD_ENV_MAP = {TrdEnv.REAL: 1, TrdEnv.SIMULATE: 0}
 
@@ -1032,6 +1099,7 @@ class TrdMarket(object):
     CN = "CN"      # 大陆市场
     HKCC = "HKCC"  # 香港A股通市场
 
+
 TRD_MKT_MAP = {
     TrdMarket.NONE: 0,
     TrdMarket.HK: 1,
@@ -1056,6 +1124,7 @@ class PositionSide(object):
     NONE = "N/A"
     LONG = "LONG"    # 多仓
     SHORT = "SHORT"  # 空仓
+
 
 POSITION_SIDE_MAP = {
     PositionSide.NONE: -1,
@@ -1090,7 +1159,10 @@ class OrderType(object):
     ABSOLUTE_LIMIT = "ABSOLUTE_LIMIT"         # 港股_限价(只有价格完全匹配才成交)
     AUCTION = "AUCTION"                       # 港股_竞价
     AUCTION_LIMIT = "AUCTION_LIMIT"           # 港股_竞价限价
-    SPECIAL_LIMIT = "SPECIAL_LIMIT"           # 港股_特别限价(即市价IOC, 订单到达交易所后，或全部成交， 或部分成交再撤单， 或下单失败)
+    # 港股_特别限价(即市价IOC, 订单到达交易所后，或全部成交， 或部分成交再撤单， 或下单失败)
+    SPECIAL_LIMIT = "SPECIAL_LIMIT"
+    SPECIAL_LIMIT_ALL = "SPECIAL_LIMIT_ALL"   # 港股_特别限价(要么全部成交，要么自动撤单)
+
 
 ORDER_TYPE_MAP = {
     OrderType.NONE: 0,
@@ -1100,6 +1172,7 @@ ORDER_TYPE_MAP = {
     OrderType.AUCTION: 6,
     OrderType.AUCTION_LIMIT: 7,
     OrderType.SPECIAL_LIMIT: 8,
+    OrderType.SPECIAL_LIMIT_ALL: 9,
 }
 
 
@@ -1176,6 +1249,20 @@ ORDER_STATUS_MAP = {
     OrderStatus.DELETED: 23,
 }
 
+
+class DealStatus(FtEnum):
+    OK = 'OK'                 # 正常
+    CANCELLED = 'CANCELLED'   # 成交被取消
+    CHANGED = 'CHANGED'       # 成交被更改
+
+    def load_dic(self):
+        return {
+            self.OK: Trd_Common_pb2.OrderFillStatus_OK,
+            self.CANCELLED: Trd_Common_pb2.OrderFillStatus_Cancelled,
+            self.CHANGED: Trd_Common_pb2.OrderFillStatus_Changed
+        }
+
+
 # 修改订单操作
 class ModifyOrderOp(object):
     """
@@ -1201,6 +1288,7 @@ class ModifyOrderOp(object):
     ENABLE = "ENABLE"
     DELETE = "DELETE"
 
+
 MODIFY_ORDER_OP_MAP = {
     ModifyOrderOp.NONE: 0,
     ModifyOrderOp.NORMAL: 1,
@@ -1211,6 +1299,8 @@ MODIFY_ORDER_OP_MAP = {
 }
 
 # 交易方向 (客户端下单只传Buy或Sell即可，SELL_SHORT / BUY_BACK 服务器可能会传回
+
+
 class TrdSide(object):
     """
     交易方向类型定义(客户端下单只传Buy或Sell即可，SELL_SHORT / BUY_BACK 服务器可能会传回)
@@ -1231,6 +1321,7 @@ class TrdSide(object):
     SELL = "SELL"
     SELL_SHORT = "SELL_SHORT"
     BUY_BACK = "BUY_BACK"
+
 
 TRD_SIDE_MAP = {
     TrdSide.NONE: 0,
@@ -1259,11 +1350,13 @@ MKT_ENV_ENABLE_MAP = {
 class TRADE(object):
     REV_TRD_MKT_MAP = {TRD_MKT_MAP[x]: x for x in TRD_MKT_MAP}
     REV_TRD_ENV_MAP = {TRD_ENV_MAP[x]: x for x in TRD_ENV_MAP}
-    REV_POSITION_SIDE_MAP = {POSITION_SIDE_MAP[x]: x for x in POSITION_SIDE_MAP}
+    REV_POSITION_SIDE_MAP = {
+        POSITION_SIDE_MAP[x]: x for x in POSITION_SIDE_MAP}
     REV_ORDER_TYPE_MAP = {ORDER_TYPE_MAP[x]: x for x in ORDER_TYPE_MAP}
     REV_TRD_SIDE_MAP = {TRD_SIDE_MAP[x]: x for x in TRD_SIDE_MAP}
     REV_ORDER_STATUS_MAP = {ORDER_STATUS_MAP[x]: x for x in ORDER_STATUS_MAP}
-    REV_MODIFY_ORDER_OP_MAP = {MODIFY_ORDER_OP_MAP[x]: x for x in MODIFY_ORDER_OP_MAP}
+    REV_MODIFY_ORDER_OP_MAP = {
+        MODIFY_ORDER_OP_MAP[x]: x for x in MODIFY_ORDER_OP_MAP}
 
     @staticmethod
     def check_mkt_envtype(trd_mkt, trd_env):
@@ -1285,9 +1378,6 @@ class SecurityReferenceType:
     WARRANT = 'WARRANT'
 
 
-from futu.common.pb import Qot_GetReference_pb2
-
-
 STOCK_REFERENCE_TYPE_MAP = {
     SecurityReferenceType.NONE: Qot_GetReference_pb2.ReferenceType_Unknow,
     SecurityReferenceType.WARRANT: Qot_GetReference_pb2.ReferenceType_Warrant
@@ -1300,10 +1390,11 @@ STOCK_REFERENCE_TYPE_MAP = {
 #
 class WrtType(FtEnum):
     NONE = "N/A"                                       # 未知
-    CALL = "CALL"                                        # 认购
-    PUT = "PUT"                                      # 认沽
+    CALL = "CALL"                                      # 认购
+    PUT = "PUT"                                        # 认沽
     BULL = "BULL"                                      # 牛
     BEAR = "BEAR"                                      # 熊
+    INLINE = "INLINE"                                  # 界内证
 
     def load_dic(self):
         return {
@@ -1311,7 +1402,8 @@ class WrtType(FtEnum):
             self.CALL: Qot_Common_pb2.WarrantType_Buy,
             self.PUT: Qot_Common_pb2.WarrantType_Sell,
             self.BULL: Qot_Common_pb2.WarrantType_Bull,
-            self.BEAR: Qot_Common_pb2.WarrantType_Bear
+            self.BEAR: Qot_Common_pb2.WarrantType_Bear,
+            self.INLINE: Qot_Common_pb2.WarrantType_InLine
         }
 
 
@@ -1355,6 +1447,19 @@ class SortField(FtEnum):
     ISSUER = "ISSUER"                                  # 发行人
     LOT_SIZE = "LOT_SIZE"                              # 每手
     ISSUE_SIZE = "ISSUE_SIZE"                          # 发行量
+    PRE_CUR_PRICE = "PRE_CUR_PRICE"  # 盘前最新价
+    AFTER_CUR_PRICE = "AFTER_CUR_PRICE"  # 盘后最新价
+    PRE_PRICE_CHANGE_VAL = "PRE_PRICE_CHANGE_VAL"  # 盘前涨跌额
+    AFTER_PRICE_CHANGE_VAL = "AFTER_PRICE_CHANGE_VAL"  # 盘后涨跌额
+    PRE_CHANGE_RATE = "PRE_CHANGE_RATE"  # 盘前涨跌幅%
+    AFTER_CHANGE_RATE = "AFTER_CHANGE_RATE"  # 盘后涨跌幅%
+    PRE_AMPLITUDE = "PRE_AMPLITUDE"  # 盘前振幅%
+    AFTER_AMPLITUDE = "AFTER_AMPLITUDE"  # 盘后振幅%
+    PRE_TURNOVER = "PRE_TURNOVER"  # 盘前成交额
+    AFTER_TURNOVER = "AFTER_TURNOVER"  # 盘后成交额
+    UPPER_STRIKE_PRICE = "UPPER_STRIKE_PRICE"  # 上限价，仅界内证支持该字段
+    LOWER_STRIKE_PRICE = "LOWER_STRIKE_PRICE"  # 下限价，仅界内证支持该字段
+    INLINE_PRICE_STATUS = "INLINE_PRICE_STATUS"  # 界内界外，仅界内证支持该字段
 
     def load_dic(self):
         return {
@@ -1392,7 +1497,20 @@ class SortField(FtEnum):
             self.WARRANT_NAME: Qot_Common_pb2.SortField_WarrantName,
             self.ISSUER: Qot_Common_pb2.SortField_Issuer,
             self.LOT_SIZE: Qot_Common_pb2.SortField_LotSize,
-            self.ISSUE_SIZE: Qot_Common_pb2.SortField_IssueSize
+            self.ISSUE_SIZE: Qot_Common_pb2.SortField_IssueSize,
+            self.PRE_CUR_PRICE: Qot_Common_pb2.SortField_PreCurPrice,
+            self.AFTER_CUR_PRICE: Qot_Common_pb2.SortField_AfterCurPrice,
+            self.PRE_PRICE_CHANGE_VAL: Qot_Common_pb2.SortField_PrePriceChangeVal,
+            self.AFTER_PRICE_CHANGE_VAL: Qot_Common_pb2.SortField_AfterPriceChangeVal,
+            self.PRE_CHANGE_RATE: Qot_Common_pb2.SortField_PreChangeRate,
+            self.AFTER_CHANGE_RATE: Qot_Common_pb2.SortField_AfterChangeRate,
+            self.PRE_AMPLITUDE: Qot_Common_pb2.SortField_PreAmplitude,
+            self.AFTER_AMPLITUDE: Qot_Common_pb2.SortField_AfterAmplitude,
+            self.PRE_TURNOVER: Qot_Common_pb2.SortField_PreTurnover,
+            self.AFTER_TURNOVER: Qot_Common_pb2.SortField_AfterTurnover,
+            self.UPPER_STRIKE_PRICE: Qot_Common_pb2.SortField_UpperStrikePrice,
+            self.LOWER_STRIKE_PRICE: Qot_Common_pb2.SortField_LowerStrikePrice,
+            self.INLINE_PRICE_STATUS: Qot_Common_pb2.SortField_InLinePriceStatus
         }
 
 
@@ -1422,11 +1540,11 @@ class IpoPeriod(FtEnum):
 '''-------------------------PriceType----------------------------'''
 
 
-# 涡轮价外/内
+# 涡轮价外/内,界内证表示界内界外
 class PriceType(FtEnum):
     NONE = "N/A"                                       # 未知
-    OUTSIDE = "OUTSIDE"                                # 价外
-    WITH_IN = "WITH_IN"                                # 价内
+    OUTSIDE = "OUTSIDE"                                # 价外,界内证表示界外
+    WITH_IN = "WITH_IN"                                # 价内,界内证表示界内
 
     def load_dic(self):
         return {
@@ -1485,6 +1603,7 @@ class Issuer(FtEnum):
     HT = "HT"                                          # 海通
     VT = "VT"                                          # 瑞通
     KC = "KC"                                          # 比联
+    MS = "MS"                                          # 摩利
 
     def load_dic(self):
         return {
@@ -1510,7 +1629,8 @@ class Issuer(FtEnum):
             self.BC: Qot_Common_pb2.Issuer_BC,
             self.HT: Qot_Common_pb2.Issuer_HT,
             self.VT: Qot_Common_pb2.Issuer_VT,
-            self.KC: Qot_Common_pb2.Issuer_KC
+            self.KC: Qot_Common_pb2.Issuer_KC,
+            self.MS: Qot_Common_pb2.Issuer_MS
         }
 
 
@@ -1532,7 +1652,6 @@ class TradeDateType(FtEnum):
 
 
 '''-------------------------行情权限----------------------------'''
-from futu.common.pb import GetUserInfo_pb2
 
 
 # 行情权限
@@ -1544,17 +1663,18 @@ class QotRight(FtEnum):
 
     def load_dic(self):
         return {
-            self.NONE: GetUserInfo_pb2.QotRight_Unknow,
-            self.BMP: GetUserInfo_pb2.QotRight_Bmp,
-            self.LEVEL1: GetUserInfo_pb2.QotRight_Level1,
-            self.LEVEL2: GetUserInfo_pb2.QotRight_Level2
+            self.NONE: Qot_Common_pb2.QotRight_Unknow,
+            self.BMP: Qot_Common_pb2.QotRight_Bmp,
+            self.LEVEL1: Qot_Common_pb2.QotRight_Level1,
+            self.LEVEL2: Qot_Common_pb2.QotRight_Level2
         }
 
 
 '''-------------------------验证码操作----------------------------'''
-from futu.common.pb import Verification_pb2
 
 #
+
+
 class VerificationOp(FtEnum):
     NONE = "N/A"                                       # 未知操作
     REQUEST = "REQUEST"                                # 请求验证码
@@ -1587,12 +1707,11 @@ class VerificationType(FtEnum):
 
 '''-------------------------被强制退出登录,例如修改了登录密码,中途打开设备锁等,详细原因在描述返回----------------------------'''
 
-from futu.common.pb import GetGlobalState_pb2
-
 
 class ProgramStatusType(FtEnum):
     NONE = "N/A"                                       # 未知
-    LOADED = "LOADED"                                  # 已完成类似加载配置,启动服务器等操作,服务器启动之前的状态无需返回
+    # 已完成类似加载配置,启动服务器等操作,服务器启动之前的状态无需返回
+    LOADED = "LOADED"
     LOGING = "LOGING"                                  # 登录中
     NEED_PIC_VERIFY_CODE = "NEED_PIC_VERIFY_CODE"      # 需要图形验证码
     NEED_PHONE_VERIFY_CODE = "NEED_PHONE_VERIFY_CODE"  # 需要手机验证码
@@ -1602,26 +1721,450 @@ class ProgramStatusType(FtEnum):
     NESSARY_DATA_MISSING = "NESSARY_DATA_MISSING"      # 缺少必要信息
     UN_AGREE_DISCLAIMER = "UN_AGREE_DISCLAIMER"        # 未同意免责声明
     READY = "READY"                                    # 可以接收业务协议收发,正常可用状态
-    FORCE_LOGOUT = "FORCE_LOGOUT"                      # OpenD登录后被强制退出登录，会导致连接全部断开,需要重连后才能得到以下该状态（并且需要在ui模式下）
+    # OpenD登录后被强制退出登录，会导致连接全部断开,需要重连后才能得到以下该状态（并且需要在ui模式下）
+    FORCE_LOGOUT = "FORCE_LOGOUT"
 
     def load_dic(self):
         return {
-            self.NONE: GetGlobalState_pb2.ProgramStatusType_None,
-            self.LOADED: GetGlobalState_pb2.ProgramStatusType_Loaded,
-            self.LOGING: GetGlobalState_pb2.ProgramStatusType_Loging,
-            self.NEED_PIC_VERIFY_CODE: GetGlobalState_pb2.ProgramStatusType_NeedPicVerifyCode,
-            self.NEED_PHONE_VERIFY_CODE: GetGlobalState_pb2.ProgramStatusType_NeedPhoneVerifyCode,
-            self.LOGIN_FAILED: GetGlobalState_pb2.ProgramStatusType_LoginFailed,
-            self.FORCE_UPDATE: GetGlobalState_pb2.ProgramStatusType_ForceUpdate,
-            self.NESSARY_DATA_PREPARING: GetGlobalState_pb2.ProgramStatusType_NessaryDataPreparing,
-            self.NESSARY_DATA_MISSING: GetGlobalState_pb2.ProgramStatusType_NessaryDataMissing,
-            self.UN_AGREE_DISCLAIMER: GetGlobalState_pb2.ProgramStatusType_UnAgreeDisclaimer,
-            self.READY: GetGlobalState_pb2.ProgramStatusType_Ready,
-            self.FORCE_LOGOUT: GetGlobalState_pb2.ProgramStatusType_ForceLogout
+            self.NONE: Common_pb2.ProgramStatusType_None,
+            self.LOADED: Common_pb2.ProgramStatusType_Loaded,
+            self.LOGING: Common_pb2.ProgramStatusType_Loging,
+            self.NEED_PIC_VERIFY_CODE: Common_pb2.ProgramStatusType_NeedPicVerifyCode,
+            self.NEED_PHONE_VERIFY_CODE: Common_pb2.ProgramStatusType_NeedPhoneVerifyCode,
+            self.LOGIN_FAILED: Common_pb2.ProgramStatusType_LoginFailed,
+            self.FORCE_UPDATE: Common_pb2.ProgramStatusType_ForceUpdate,
+            self.NESSARY_DATA_PREPARING: Common_pb2.ProgramStatusType_NessaryDataPreparing,
+            self.NESSARY_DATA_MISSING: Common_pb2.ProgramStatusType_NessaryDataMissing,
+            self.UN_AGREE_DISCLAIMER: Common_pb2.ProgramStatusType_UnAgreeDisclaimer,
+            self.READY: Common_pb2.ProgramStatusType_Ready,
+            self.FORCE_LOGOUT: Common_pb2.ProgramStatusType_ForceLogout
         }
+
 
 class ContextStatus:
     START = 'START'
     CONNECTING = 'CONNECTING'
     READY = 'READY'
     CLOSED = 'CLOSED'
+
+
+class UserInfoField:
+    BASIC = 1
+    API = 2
+    QOTRIGHT = 4
+    DISCLAIMER = 8
+    UPDATE = 16
+    WEBKEY = 2048
+
+    @classmethod
+    def fields_to_flag_val(cls, fields):
+        list_ret = []
+        for x in fields:
+            if x not in list_ret:
+                list_ret.append(x)
+
+        ret_flags = 0
+        for x in list_ret:
+            ret_flags += x
+        return ret_flags
+
+
+class UpdateType(FtEnum):
+    NO = "NO"
+    ADVICE = "ADVICE"
+    FORCE = "FORCE"
+
+    def load_dic(self):
+        return {
+            self.NO: GetUserInfo_pb2.UpdateType_None,
+            self.ADVICE: GetUserInfo_pb2.UpdateType_Advice,
+            self.FORCE: GetUserInfo_pb2.UpdateType_Force
+        }
+
+
+'''-------------------------DelayStatisticsType----------------------------'''
+
+#
+
+
+class DelayStatisticsType(FtEnum):
+    NONE = "N/A"                                       # 未知类型
+    QOT_PUSH = "QOT_PUSH"                              # 行情推送统计
+    REQ_REPLY = "REQ_REPLY"                            # 请求回应统计
+    PLACE_ORDER = "PLACE_ORDER"                        # 下单统计
+    ALL = [QOT_PUSH, REQ_REPLY, PLACE_ORDER]
+
+    describe_dict = {
+        QOT_PUSH: "行情推送统计",
+        REQ_REPLY: "请求回应统计",
+        PLACE_ORDER: "下单统计",
+    }
+
+    def load_dic(self):
+        return {
+            self.NONE: GetDelayStatistics_pb2.DelayStatisticsType_Unkonw,
+            self.QOT_PUSH: GetDelayStatistics_pb2.DelayStatisticsType_QotPush,
+            self.REQ_REPLY: GetDelayStatistics_pb2.DelayStatisticsType_ReqReply,
+            self.PLACE_ORDER: GetDelayStatistics_pb2.DelayStatisticsType_PlaceOrder
+        }
+
+    @classmethod
+    def get_describe(cls, t):
+        obj = cls()
+        return obj.describe_dict[t]
+
+
+'''-------------------------QotPushStage----------------------------'''
+
+
+# 某段时间的统计数据，SR表示服务器收到数据，目前只有港股支持SR字段，SS表示服务器发出数据，CR表示OpenD收到数据，CS表示OpenD发出数据
+class QotPushStage(FtEnum):
+    NONE = "N/A"                                       # 未知
+    SR2_SS = "SR2_SS"                                  # 统计服务端处理耗时
+    SS2_CR = "SS2_CR"                                  # 统计网络耗时
+    CR2_CS = "CR2_CS"                                  # 统计OpenD处理耗时
+    SS2_CS = "SS2_CS"                                  # 统计服务器发出到OpenD发出的处理耗时
+    SR2_CS = "SR2_CS"                                  # 统计服务器收到数据到OpenD发出的处理耗时
+    ALL = [SR2_SS, SS2_CR, CR2_CS, SS2_CS, SR2_CS]
+
+    describe_dict = {
+        SR2_SS: "统计服务端处理耗时",
+        SS2_CR: "统计网络耗时",
+        CR2_CS: "统计OpenD处理耗时",
+        SS2_CS: "统计服务器发出到OpenD发出的处理耗时",
+        SR2_CS: "统计服务器收到数据到OpenD发出的处理耗时(也就是从交易所到用户的总时间，港股市场数据最全，A股和美股部分缺乏交易所下发时间）",
+    }
+
+    def load_dic(self):
+        return {
+            self.NONE: GetDelayStatistics_pb2.QotPushStage_Unkonw,
+            self.SR2_SS: GetDelayStatistics_pb2.QotPushStage_SR2SS,
+            self.SS2_CR: GetDelayStatistics_pb2.QotPushStage_SS2CR,
+            self.CR2_CS: GetDelayStatistics_pb2.QotPushStage_CR2CS,
+            self.SS2_CS: GetDelayStatistics_pb2.QotPushStage_SS2CS,
+            self.SR2_CS: GetDelayStatistics_pb2.QotPushStage_SR2CS
+        }
+
+    @classmethod
+    def get_describe(cls, t):
+        obj = cls()
+        return obj.describe_dict[t]
+
+
+'''-------------------------QotPushType----------------------------'''
+
+
+# 行情推送类型
+class QotPushType(FtEnum):
+    NONE = "N/A"                                       # 未知
+    PRICE = "PRICE"                                    # 最新价
+    TICKER = "TICKER"                                  # 逐笔
+    ORDER_BOOK = "ORDER_BOOK"                          # 摆盘
+    BROKER = "BROKER"                                  # 经纪队列
+
+    describe_dict = {
+        PRICE: "最新价",
+        TICKER: "逐笔",
+        ORDER_BOOK: "摆盘",
+        BROKER: "经纪队列",
+    }
+
+    def load_dic(self):
+        return {
+            self.NONE: GetDelayStatistics_pb2.QotPushType_Unkonw,
+            self.PRICE: GetDelayStatistics_pb2.QotPushType_Price,
+            self.TICKER: GetDelayStatistics_pb2.QotPushType_Ticker,
+            self.ORDER_BOOK: GetDelayStatistics_pb2.QotPushType_OrderBook,
+            self.BROKER: GetDelayStatistics_pb2.QotPushType_Broker
+        }
+
+    @classmethod
+    def get_describe(cls, t):
+        obj = cls()
+        return obj.describe_dict[t]
+
+
+'''-------------------------ModifyUserSecurityOp----------------------------'''
+
+
+# 自选股操作
+class ModifyUserSecurityOp(FtEnum):
+    NONE = "N/A"                                       # 未知
+    ADD = "ADD"                                        # 新增
+    DEL = "DEL"                                        # 删除
+
+    def load_dic(self):
+        return {
+            self.NONE: Qot_ModifyUserSecurity_pb2.ModifyUserSecurityOp_Unknown,
+            self.ADD: Qot_ModifyUserSecurity_pb2.ModifyUserSecurityOp_Add,
+            self.DEL: Qot_ModifyUserSecurity_pb2.ModifyUserSecurityOp_Del
+        }
+
+
+# 账户类型
+class TrdAccType(FtEnum):
+    NONE = 'N/A'     # 未知类型
+    CASH = 'CASH'           # 现金账户
+    MARGIN = 'MARGIN'       # 保证金账户
+
+    def load_dic(self):
+        return {
+            self.NONE: Trd_Common_pb2.TrdAccType_Unknown,
+            self.CASH: Trd_Common_pb2.TrdAccType_Cash,
+            self.MARGIN: Trd_Common_pb2.TrdAccType_Margin
+        }
+
+
+'''-------------------------StockFilter 选股----------------------------'''
+
+
+# 选股排序
+
+class SortDir(FtEnum):
+    NONE = "N/A"                                       # 不排序
+    ASCEND = "ASCEND"                                  # 升序
+    DESCEND = "DESCEND"                                # 降序
+
+    def load_dic(self):
+        return {
+            self.NONE: Qot_StockFilter_pb2.SortDir_No,
+            self.ASCEND: Qot_StockFilter_pb2.SortDir_Ascend,
+            self.DESCEND: Qot_StockFilter_pb2.SortDir_Descend
+        }
+
+# 简单属性
+
+
+class StockField(FtEnum):
+    NONE = "N/A"                                       # 未知
+    # 以下是简单数据过滤所支持的枚举
+    simple_enum_begin = 0
+    STOCK_CODE = "STOCK_CODE"                          # 股票代码，不能填区间上下限值。
+    STOCK_NAME = "STOCK_NAME"                          # 股票名称，不能填区间上下限值。
+    CUR_PRICE = "CUR_PRICE"                            # 最新价 例如填写[10,20]值区间
+    # (现价 - 52周最高)/52周最高，对应PC端离52周高点百分比 例如填写[-30,-10]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%，如20实际对应20%）
+    CUR_PRICE_TO_HIGHEST52_WEEKS_RATIO = "CUR_PRICE_TO_HIGHEST52_WEEKS_RATIO"
+    # (现价 - 52周最低)/52周最低，对应PC端离52周低点百分比 例如填写[20,40]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+    CUR_PRICE_TO_LOWEST52_WEEKS_RATIO = "CUR_PRICE_TO_LOWEST52_WEEKS_RATIO"
+    # (今日最高 - 52周最高)/52周最高 例如填写[-3,-1]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+    HIGH_PRICE_TO_HIGHEST52_WEEKS_RATIO = "HIGH_PRICE_TO_HIGHEST52_WEEKS_RATIO"
+    # (今日最低 - 52周最低)/52周最低 例如填写[10,70]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+    LOW_PRICE_TO_LOWEST52_WEEKS_RATIO = "LOW_PRICE_TO_LOWEST52_WEEKS_RATIO"
+    VOLUME_RATIO = "VOLUME_RATIO"                      # 量比 例如填写[0.5,30]值区间
+    BID_ASK_RATIO = "BID_ASK_RATIO"                    # 委比 例如填写[-20,80.5]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+    LOT_PRICE = "LOT_PRICE"                            # 每手价格 例如填写[40,100]值区间
+    # 市值 例如填写[50000000,3000000000]值区间
+    MARKET_VAL = "MARKET_VAL"
+    # 市盈率 (静态) 例如填写[-8,65.3]值区间
+    PE_ANNUAL = "PE_ANNUAL"
+    # 市盈率TTM 例如填写[-10,20.5]值区间
+    PE_TTM = "PE_TTM"
+    PB_RATE = "PB_RATE"                                # 市净率 例如填写[0.5,20]值区间
+    CHANGE_RATE_5MIN = "CHANGE_RATE_5MIN"              # 五分钟价格涨跌幅 例如填写[-5,6.3]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+    CHANGE_RATE_BEGIN_YEAR = "CHANGE_RATE_BEGIN_YEAR"  # 年初至今价格涨跌幅 例如填写[-50.1,400.7]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+
+    # 以下是累积数据过滤所支持的枚举
+    acc_enum_begin = 100
+    CHANGE_RATE = "CHANGE_RATE"                        # 涨跌幅 例如填写[-10.2,20.4]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+    AMPLITUDE = "AMPLITUDE"                            # 振幅 例如填写[0.5,20.6]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+    VOLUME = "VOLUME"                                  # 日均成交量 例如填写[2000,70000]值区间
+    TURNOVER = "TURNOVER"                              # 日均成交额 例如填写[1400,890000]值区间
+    TURNOVER_RATE = "TURNOVER_RATE"                    # 换手率 例如填写[2,30]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+
+    # 以下是财务数据过滤所支持的枚举
+    financial_enum_begin = 200
+    NET_PROFIT = "NET_PROFIT"                          # 净利润 例如填写[100000000,2500000000]值区间
+    NET_PROFIX_GROWTH = "NET_PROFIX_GROWTH"            # 净利润增长率 例如填写[-10,300]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+    SUM_OF_BUSINESS = "SUM_OF_BUSINESS"                # 营业收入 例如填写[100000000,6400000000]值区间
+    SUM_OF_BUSINESS_GROWTH = "SUM_OF_BUSINESS_GROWTH"  # 营收同比增长率 例如填写[-5,200]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+    NET_PROFIT_RATE = "NET_PROFIT_RATE"                # 净利率 例如填写[10,113]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+    GROSS_PROFIT_RATE = "GROSS_PROFIT_RATE"            # 毛利率 例如填写[4,65]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+    DEBT_ASSET_RATE = "DEBT_ASSET_RATE"                # 资产负债率 例如填写[5,470]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+    RETURN_ON_EQUITY_RATE = "RETURN_ON_EQUITY_RATE"    # 净资产收益率 例如填写[20,230]值区间（该字段为百分比字段，默认不展示%，如20实际对应20%）
+
+    def load_dic(self):
+        return {
+            self.NONE: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_Unknown,
+            self.STOCK_CODE: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_StockCode,
+            self.STOCK_NAME: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_StockName,
+            self.CUR_PRICE: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_CurPrice,
+            self.CUR_PRICE_TO_HIGHEST52_WEEKS_RATIO: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_CurPriceToHighest52WeeksRatio,
+            self.CUR_PRICE_TO_LOWEST52_WEEKS_RATIO: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_CurPriceToLowest52WeeksRatio,
+            self.HIGH_PRICE_TO_HIGHEST52_WEEKS_RATIO: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_HighPriceToHighest52WeeksRatio,
+            self.LOW_PRICE_TO_LOWEST52_WEEKS_RATIO: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_LowPriceToLowest52WeeksRatio,
+            self.VOLUME_RATIO: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_VolumeRatio,
+            self.BID_ASK_RATIO: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_BidAskRatio,
+            self.LOT_PRICE: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_LotPrice,
+            self.MARKET_VAL: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_MarketVal,
+            self.PE_ANNUAL: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_PeAnnual,
+            self.PE_TTM: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_PeTTM,
+            self.PB_RATE: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_PbRate,
+            self.CHANGE_RATE_5MIN: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_ChangeRate5min,
+            self.CHANGE_RATE_BEGIN_YEAR: self.simple_enum_begin + Qot_StockFilter_pb2.StockField_ChangeRateBeginYear,
+
+            self.CHANGE_RATE: self.acc_enum_begin + Qot_StockFilter_pb2.AccumulateField_ChangeRate,
+            self.AMPLITUDE: self.acc_enum_begin + Qot_StockFilter_pb2.AccumulateField_Amplitude,
+            self.VOLUME: self.acc_enum_begin + Qot_StockFilter_pb2.AccumulateField_Volume,
+            self.TURNOVER: self.acc_enum_begin + Qot_StockFilter_pb2.AccumulateField_Turnover,
+            self.TURNOVER_RATE: self.acc_enum_begin + Qot_StockFilter_pb2.AccumulateField_TurnoverRate,
+
+            self.NET_PROFIT: self.financial_enum_begin + Qot_StockFilter_pb2.FinancialField_NetProfit,
+            self.NET_PROFIX_GROWTH: self.financial_enum_begin + Qot_StockFilter_pb2.FinancialField_NetProfitGrowth,
+            self.SUM_OF_BUSINESS: self.financial_enum_begin + Qot_StockFilter_pb2.FinancialField_SumOfBusiness,
+            self.SUM_OF_BUSINESS_GROWTH: self.financial_enum_begin + Qot_StockFilter_pb2.FinancialField_SumOfBusinessGrowth,
+            self.NET_PROFIT_RATE: self.financial_enum_begin + Qot_StockFilter_pb2.FinancialField_NetProfitRate,
+            self.GROSS_PROFIT_RATE: self.financial_enum_begin + Qot_StockFilter_pb2.FinancialField_GrossProfitRate,
+            self.DEBT_ASSET_RATE: self.financial_enum_begin + Qot_StockFilter_pb2.FinancialField_DebtAssetRate,
+            self.RETURN_ON_EQUITY_RATE: self.financial_enum_begin + Qot_StockFilter_pb2.FinancialField_ReturnOnEquityRate,
+        }
+
+
+#财务指标的周期
+class FinancialQuarter(FtEnum):
+    NONE = "N/A"
+    ANNUAL = "ANNUAL"                            # 年报
+    FIRST_QUARTER = "FIRST_QUARTER"              # Q1一季报
+    INTERIM = "INTERIM"                           # Q6中期报
+    THIRD_QUARTER = "THIRD_QUARTER"              # Q9三季报
+    MOST_RECENT_QUARTER = "MOST_RECENT_QUARTER" # 最近季报
+    
+    def load_dic(self):
+        return {
+            self.NONE: Qot_StockFilter_pb2.FinancialQuarter_Unknown,
+            self.ANNUAL: Qot_StockFilter_pb2.FinancialQuarter_Annual,
+            self.FIRST_QUARTER: Qot_StockFilter_pb2.FinancialQuarter_FirstQuarter,
+            self.INTERIM: Qot_StockFilter_pb2.FinancialQuarter_Interim,
+            self.THIRD_QUARTER: Qot_StockFilter_pb2.FinancialQuarter_ThirdQuarter,
+            self.MOST_RECENT_QUARTER: Qot_StockFilter_pb2.FinancialQuarter_MostRecentQuarter,
+        }
+
+#
+class CodeChangeType(FtEnum):
+    NONE = "N/A"
+    GEM_TO_MAIN = "GEM_TO_MAIN"                        # 创业板转主板
+    UNPAID = "UNPAID"                                  # 买卖未缴款供股权
+    CHANGE_LOT = "CHANGE_LOT"                          # 更改买卖单位
+    SPLIT = "SPLIT"                                    # 拆股
+    JOINT = "JOINT"                                    # 合股
+    JOINT_SPLIT = "JOINT_SPLIT"                        # 股份先并后拆
+    SPLIT_JOINT = "SPLIT_JOINT"                        # 股份先拆后并
+    OTHER = "OTHER"                                    # 其他
+
+    def load_dic(self):
+        return {
+            self.NONE: Qot_GetCodeChange_pb2.CodeChangeType_Unkown,
+            self.GEM_TO_MAIN: Qot_GetCodeChange_pb2.CodeChangeType_GemToMain,
+            self.UNPAID: Qot_GetCodeChange_pb2.CodeChangeType_Unpaid,
+            self.CHANGE_LOT: Qot_GetCodeChange_pb2.CodeChangeType_ChangeLot,
+            self.SPLIT: Qot_GetCodeChange_pb2.CodeChangeType_Split,
+            self.JOINT: Qot_GetCodeChange_pb2.CodeChangeType_Joint,
+            self.JOINT_SPLIT: Qot_GetCodeChange_pb2.CodeChangeType_JointSplit,
+            self.SPLIT_JOINT: Qot_GetCodeChange_pb2.CodeChangeType_SplitJoint,
+            self.OTHER: Qot_GetCodeChange_pb2.CodeChangeType_Other
+        }
+
+#
+class TimeFilterType(FtEnum):
+    NONE = "N/A"                                       # 未知
+    PUBLIC = "PUBLIC"                                  # 根据公布时间过滤
+    EFFECTIVE = "EFFECTIVE"                            # 根据生效时间过滤
+    END = "END"                                        # 根据结束时间过滤
+
+    def load_dic(self):
+        return {
+            self.NONE: Qot_GetCodeChange_pb2.TimeFilterType_Unknow,
+            self.PUBLIC: Qot_GetCodeChange_pb2.TimeFilterType_Public,
+            self.EFFECTIVE: Qot_GetCodeChange_pb2.TimeFilterType_Effective,
+            self.END: Qot_GetCodeChange_pb2.TimeFilterType_End
+        }
+
+
+class TimeFilter(object):
+    type = 0  # 时间筛选类型
+    begin_time = ''  # 时间筛选开始点
+    end_time = ''  # 时间筛选结束点
+
+    def __init__(self, type, begin_time, end_time):
+        self.type = type
+        self.begin_time = begin_time
+        self.end_time = end_time
+
+#
+class SecurityStatus(FtEnum):
+    NONE = "N/A"                                                                 #未知
+    NORMAL = "NORMAL"                                                            #正常状态
+    LISTING = "LISTING"                                                          #待上市
+    PURCHASING = "PURCHASING"                                                    #申购中
+    SUBSCRIBING = "SUBSCRIBING"                                                  #认购中
+    BEFORE_DARK_TRADE_OPEING = "BEFORE_DARK_TRADE_OPEING"                        #暗盘开盘前
+    DARK_TRADING = "DARK_TRADING"                                                #暗盘交易中
+    DARK_TRAD_END = "DARK_TRAD_END"                                              #暗盘已收盘
+    TO_BE_OPEN = "TO_BE_OPEN"                                                    #待开盘
+    SUSPENDED = "SUSPENDED"                                                      #停牌
+    CALLED = "CALLED"                                                            #已收回
+    EXPIRED_LAST_TRADING_DATE = "EXPIRED_LAST_TRADING_DATE"                      #已过最后交易日
+    EXPIRED = "EXPIRED"                                                          #已过期
+    DELISTED = "DELISTED"                                                        #已退市
+    CHANGE_TO_TEMPORARY_CODE = "CHANGE_TO_TEMPORARY_CODE"                        #公司行动中，交易关闭，转至临时代码交易
+    TEMPORARY_CODE_TRADE_END = "TEMPORARY_CODE_TRADE_END"                        #临时买卖结束，交易关闭
+    CHANGED_PLATE_TRADE_END = "CHANGED_PLATE_TRADE_END"                          #已转板，旧代码交易关闭
+    CHANGED_CODE_TRAD_END = "CHANGED_CODE_TRAD_END"                              #已换代码，旧代码交易关闭
+    RECOVERABLE_CIRCUIT_BREAKER = "RECOVERABLE_CIRCUIT_BREAKER"                  #可恢复性熔断
+    UNRECOVERABLE_CIRCUIT_BREAKER = "UNRECOVERABLE_CIRCUIT_BREAKER"              #不可恢复性熔断
+    AFTER_COMBINATION = "AFTER_COMBINATION"                                      #盘后撮合
+    AFTER_TRANSACTION = "AFTER_TRANSACTION"                                      #盘后交易
+
+    def load_dic(self):
+        return {
+            self.NONE: Qot_Common_pb2.SecurityStatus_Unknown,
+            self.NORMAL: Qot_Common_pb2.SecurityStatus_Normal,
+            self.LISTING: Qot_Common_pb2.SecurityStatus_Listing,
+            self.PURCHASING: Qot_Common_pb2.SecurityStatus_Purchasing,
+            self.SUBSCRIBING: Qot_Common_pb2.SecurityStatus_Subscribing,
+            self.BEFORE_DARK_TRADE_OPEING: Qot_Common_pb2.SecurityStatus_BeforeDrakTradeOpening,
+            self.DARK_TRADING: Qot_Common_pb2.SecurityStatus_DrakTrading,
+            self.DARK_TRAD_END: Qot_Common_pb2.SecurityStatus_DrakTradeEnd,
+            self.TO_BE_OPEN: Qot_Common_pb2.SecurityStatus_ToBeOpen,
+            self.SUSPENDED: Qot_Common_pb2.SecurityStatus_Suspended,
+            self.CALLED: Qot_Common_pb2.SecurityStatus_Called,
+            self.EXPIRED_LAST_TRADING_DATE: Qot_Common_pb2.SecurityStatus_ExpiredLastTradingDate,
+            self.EXPIRED: Qot_Common_pb2.SecurityStatus_Expired,
+            self.DELISTED: Qot_Common_pb2.SecurityStatus_Delisted,
+            self.CHANGE_TO_TEMPORARY_CODE: Qot_Common_pb2.SecurityStatus_ChangeToTemporaryCode,
+            self.TEMPORARY_CODE_TRADE_END: Qot_Common_pb2.SecurityStatus_TemporaryCodeTradeEnd,
+            self.CHANGED_PLATE_TRADE_END: Qot_Common_pb2.SecurityStatus_ChangedPlateTradeEnd,
+            self.CHANGED_CODE_TRAD_END: Qot_Common_pb2.SecurityStatus_ChangedCodeTradeEnd,
+            self.RECOVERABLE_CIRCUIT_BREAKER: Qot_Common_pb2.SecurityStatus_RecoverableCircuitBreaker,
+            self.UNRECOVERABLE_CIRCUIT_BREAKER: Qot_Common_pb2.SecurityStatus_UnRecoverableCircuitBreaker,
+            self.AFTER_COMBINATION: Qot_Common_pb2.SecurityStatus_AfterCombination,
+            self.AFTER_TRANSACTION: Qot_Common_pb2.SecurityStatus_AfterTransation
+        }
+
+#
+class IndexOptionType(FtEnum):
+    NONE = "N/A"                                                                 #未知
+    NORMAL = "NORMAL"                                                            #正常
+    SMALL = "SMALL"                                                              #小型
+
+    def load_dic(self):
+        return {
+            self.NONE: Qot_Common_pb2.IndexOptionType_Unknown,
+            self.NORMAL: Qot_Common_pb2.IndexOptionType_Normal,
+            self.SMALL: Qot_Common_pb2.IndexOptionType_Small
+        }
+
+
+class OptionAreaType(FtEnum):
+    NONE = "N/A"                                                                 #未知
+    AMERICAN = "AMERICAN"                                                        #美式
+    EUROPEAN = "EUROPEAN"                                                        #欧式
+    BERMUDA = "BERMUDA"                                                          #百慕大
+
+    def load_dic(self):
+        return {
+            self.NONE: Qot_Common_pb2.OptionAreaType_Unknown,
+            self.AMERICAN: Qot_Common_pb2.OptionAreaType_American,
+            self.EUROPEAN: Qot_Common_pb2.OptionAreaType_European,
+            self.BERMUDA: Qot_Common_pb2.OptionAreaType_Bermuda
+        }
+
