@@ -40,6 +40,22 @@ class TinyStrateBase(object):
         pass
 
     @abstractmethod
+    def on_tick_changed(self, tiny_tick):
+        """tick变化时，会触发该回调"""
+        # TinyQuoteData
+        data = tiny_tick
+        str_log = "on_tick_changed code=%s time=%s price=%s volume=%s turnover=%s" % (data.code, data.time, data.price, data.volume, data.turnover)
+        self.log(str_log)
+
+    @abstractmethod
+    def on_rt_changed(self, rt_data):
+        """分时变化时，会触发该回调"""
+        # TinyQuoteData
+        data = rt_data
+        str_log = "on_rt_changed code=%s time=%s cur_price=%s avg_price=%s turnover=%s volume=%s" % (data.code, data.time, data.cur_price, data.avg_price, data.turnover, data.volume)
+        self.log(str_log)
+
+    @abstractmethod
     def on_quote_changed(self, tiny_quote):
         """报价、摆盘实时数据变化时，会触发该回调"""
         # TinyQuoteData
@@ -163,6 +179,8 @@ class TinyStrateBase(object):
         self._event_engine.register(EVENT_BEFORE_TRADING, self.__event_before_trading)
         self._event_engine.register(EVENT_AFTER_TRADING, self.__event_after_trading)
         self._event_engine.register(EVENT_QUOTE_CHANGE, self.__event_quote_change)
+        self._event_engine.register(EVENT_RT_DATA, self.__event_rt_data)
+        self._event_engine.register(EVENT_TINY_TICK, self.__event_tiny_tick)
         self._event_engine.register(EVENT_CUR_KLINE_BAR, self.__event_cur_kline_bar)
 
         self.log("init_strate '%s' ret = %s" % (self.name, init_ret))
@@ -204,11 +222,26 @@ class TinyStrateBase(object):
 
         self.on_after_trading(date_time)
 
-    def __event_quote_change(self, event):
+    def __event_tiny_tick(self, event):
         # 没开盘不向外推送数据
         if not self._market_opened:
             return
 
+        tiny_tick = event.dict_['data']
+        self.on_tick_changed(tiny_tick)
+
+    def __event_rt_data(self, event):
+        # 没开盘不向外推送数据
+        if not self._market_opened:
+            return
+
+        tiny_rt = event.dict_['data']
+        self.on_rt_changed(tiny_rt)
+
+    def __event_quote_change(self, event):
+        # 没开盘不向外推送数据
+        if not self._market_opened:
+            return
         tiny_quote = event.dict_['data']
         self.on_quote_changed(tiny_quote)
 

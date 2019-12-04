@@ -16,8 +16,10 @@ EVENT_BEFORE_TRADING = 'before trading'
 EVENT_AFTER_TRADING = 'after trading'
 EVENT_AFTER_TRADING_FINAL = 'after trading final'
 
+EVENT_RT_DATA = 'rt data'
 EVENT_TINY_TICK = 'tiny tick'
 EVENT_QUOTE_CHANGE ='tiny quote data change'
+EVENT_ORDER_BOOK = 'order book change'
 
 EVENT_CUR_KLINE_PUSH = 'cur kline push'
 EVENT_CUR_KLINE_BAR = 'kline min1 bar'
@@ -51,6 +53,41 @@ MAP_KLINE_SIZE = {KTYPE_DAY: 200,
 class GLOBAL(object):
     """ datetime.strptime 有线程安全问题"""
     dt_lock = threading.RLock()
+
+
+class TinyTickData(object):
+    """行情数据类
+    'code', 'time', 'price', 'volume', 'turnover', "ticker_direction", 'sequence', 'type', 'push_data_type',
+    """
+    def __init__(self):
+        # 代码相关
+        self.code = ''
+        self.time = ''
+        self.price = 0
+        self.volume = 0
+        self.turnover = 0
+        self.ticker_direction = 0
+        self.sequence = 0
+        self.type = 0
+        self.push_data_type = 0
+
+
+
+class TinyRTData(object):
+    """分时数据类
+     'code', 'time', 'is_blank', 'opened_mins', 'cur_price', "last_close", 'avg_price', 'turnover', 'volume'
+    """
+    def __init__(self):
+        # 代码相关
+        self.code = ''
+        self.time = ''
+        self.is_blank = 0
+        self.opened_mins = 0
+        self.cur_price = 0
+        self.last_close = 0
+        self.avg_price = 0
+        self.turnover = 0
+        self.volume = 0
 
 class TinyQuoteData(object):
     """行情数据类"""

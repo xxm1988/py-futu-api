@@ -95,6 +95,7 @@ class OrderBookHandlerBase(RspHandlerBase):
 
         return ret_code, content
 
+
 class CurKlineHandlerBase(RspHandlerBase):
     """
     异步处理推送的k线数据。

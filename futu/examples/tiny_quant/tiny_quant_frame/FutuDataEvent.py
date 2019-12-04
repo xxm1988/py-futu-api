@@ -36,8 +36,10 @@ class FutuDataEvent(object):
         self._sym_kline_next_event_bar_dic = {} # 记录下一个准备推送的bar
 
         # 注册事件
-        self._event_engine.register(EVENT_TINY_TICK, self._event_tiny_tick)
-        self._event_engine.register(EVENT_CUR_KLINE_PUSH, self._event_cur_kline_push)
+        # self._event_engine.register(EVENT_TINY_TICK, self._event_tiny_tick)
+        # self._event_engine.register(EVENT_QUOTE_CHANGE, self._event_tiny_quote)
+        # self._event_engine.register(EVENT_RT_DATA, self._event_rt_data)
+        # self._event_engine.register(EVENT_CUR_KLINE_PUSH, self._event_cur_kline_push)
         self._event_engine.register(EVENT_BEFORE_TRADING, self.__event_before_trading)
         self._event_engine.register(EVENT_AFTER_TRADING, self.__event_after_trading)
         self._event_engine.register(EVENT_AFTER_TRADING_FINAL, self.__event_after_trading_final)
@@ -64,6 +66,28 @@ class FutuDataEvent(object):
                 self.futu_data_event.process_orderbook(content)
                 return ft.RET_OK, content
 
+        class TickerHandler(ft.TickerHandlerBase):
+            """逐笔数据处理器"""
+            futu_data_event = self
+
+            def on_recv_rsp(self, rsp_str):
+                ret_code, content = super(TickerHandler, self).on_recv_rsp(rsp_str)
+                if ret_code != ft.RET_OK:
+                    return ft.RET_ERROR, content
+                self.futu_data_event.process_tick(content)
+                return ft.RET_OK, content
+
+        class RTDataHandler(ft.RTDataHandlerBase):
+            """分时数据处理器"""
+            futu_data_event = self
+
+            def on_recv_rsp(self, rsp_str):
+                ret_code, content = super(RTDataHandler, self).on_recv_rsp(rsp_str)
+                if ret_code != ft.RET_OK:
+                    return ft.RET_ERROR, content
+                self.futu_data_event.process_rt(content)
+                return ft.RET_OK, content
+
         class CurKlineHandler(ft.CurKlineHandlerBase):
             """实时k线推送处理器"""
             futu_data_event = self
@@ -79,9 +103,11 @@ class FutuDataEvent(object):
         self._quote_context.set_handler(QuoteHandler())
         self._quote_context.set_handler(OrderBookHandler())
         self._quote_context.set_handler(CurKlineHandler())
+        self._quote_context.set_handler(TickerHandler())
+        self._quote_context.set_handler(RTDataHandler())
 
         # 定阅数据
-        subtype_list = [ft.SubType.QUOTE, ft.SubType.ORDER_BOOK, ft.SubType.K_DAY, ft.SubType.K_1M]
+        subtype_list = [ft.SubType.QUOTE, ft.SubType.ORDER_BOOK, ft.SubType.TICKER, ft.SubType.RT_DATA, ft.SubType.K_DAY, ft.SubType.K_1M]
         ret, data = self._quote_context.subscribe(symbol_pools, subtype_list)
         if ret != ft.RET_OK:
             raise Exception('订阅行情失败：{}'.format(data))
@@ -171,25 +197,65 @@ class FutuDataEvent(object):
         if self._quant_frame is not None:
             self._quant_frame.writeCtaLog(content)
 
-    def _notify_new_tick_event(self, tick):
+    def _notify_new_tick_event(self, tiny_tick):
         """tick推送"""
-        if tick.time is '':
-            return
+        #print("running _notify_new_tick_event")
+        if tiny_tick.time is '':
+            print("time is null")
+            return False
+        if not self._market_opened:
+            print("market not being")
+            return False
         event = Event(type_=EVENT_TINY_TICK)
-        event.dict_['data'] = tick
+        event.dict_['data'] = tiny_tick
+        self._event_engine.put(event)
+
+    def _notify_rt_data_event(self, tiny_rt):
+        """rt推送"""
+        if tiny_rt.time is '':
+            print("time is null")
+            return False
+        if not self._market_opened:
+            print("market not being")
+            return False
+        event = Event(type_=EVENT_RT_DATA)
+        event.dict_['data'] = tiny_rt
         self._event_engine.put(event)
 
     def _notify_quote_change_event(self, tiny_quote):
-        """推送"""
+        """报价摆盘推送"""
+        #print("notify quote change")
         if not self._market_opened:
-            return
+            print("market not being")
+            return False
 
         event = Event(type_=EVENT_QUOTE_CHANGE)
         event.dict_['data'] = tiny_quote
         self._rt_tiny_quote[tiny_quote.symbol] = tiny_quote
         self._event_engine.put(event)
 
+    def _notify_order_book_event(self, order_book):
+        """报价摆盘推送"""
+        #print("notify quote change")
+        if not self._market_opened:
+            print("market not being")
+            return False
+
+        event = Event(type_=EVENT_ORDER_BOOK)
+        event.dict_['data'] = order_book
+        self._rt_tiny_quote[order_book.symbol] = order_book
+        self._event_engine.put(event)
+
     def _event_tiny_tick(self, event):
+        tick = event.dict_['data']
+        #print("running _event_tiny_tick")
+        self._notify_new_tick_event(tick)
+
+    def _event_rt_data(self, event):
+        tick = event.dict_['data']
+        #self._notify_rt_data_event(tick)
+
+    def _event_tiny_quote(self, event):
         tick = event.dict_['data']
         t_now = time.time()
         t_last, count_last = 0, 0
@@ -331,9 +397,10 @@ class FutuDataEvent(object):
 
     def process_quote(self, data):
         """报价推送"""
+        #print("quote length is %s" % len(data))
+        print("quote data %s" % str(data))
         for ix, row in data.iterrows():
             symbol = row['code']
-
             tick = self._tick_dict.get(symbol, None)
             if not tick:
                 tick = TinyQuoteData()
@@ -360,12 +427,58 @@ class FutuDataEvent(object):
             tick.volume = row['volume']
 
             new_tick = copy(tick)
+            self._notify_quote_change_event(new_tick)
+
+    def process_tick(self, data):
+        """tick推送"""
+        #print("tick length is %s" % len(data))
+
+        for ix, row in data.iterrows():
+            symbol = row['code']
+            tick = self._tick_dict.get(symbol, None)
+            if not tick:
+                tick = TinyTickData()
+                tick.symbol = symbol
+                self._tick_dict[symbol] = tick
+            tick.code = row['code']
+            tick.time = row['time']
+            tick.price = row['price']
+            tick.volume = row['volume']
+            tick.turnover = row['turnover']
+            tick.ticker_direction = row['ticker_direction']
+            tick.sequence = row['sequence']
+            tick.type = row['type']
+            tick.push_data_type = row['push_data_type']
+            new_tick = copy(tick)
             self._notify_new_tick_event(new_tick)
+
+    def process_rt(self, data):
+        """rt_data推送"""
+        #print("rt data length is %s" % len(data))
+        for ix, row in data.iterrows():
+            symbol = row['code']
+
+            tick = self._tick_dict.get(symbol, None)
+            if not tick:
+                tick = TinyRTData()
+                tick.symbol = symbol
+                self._tick_dict[symbol] = tick
+            tick.code = row['code']
+            tick.time = row['time']
+            tick.is_blank = row['is_blank']
+            tick.opened_mins = row['opened_mins']
+            tick.cur_price = row['cur_price']
+            tick.last_close = row['last_close']
+            tick.avg_price = row['avg_price']
+            tick.turnover = row['turnover']
+            tick.volume = row['volume']
+            new_tick = copy(tick)
+            self._notify_rt_data_event(new_tick)
 
     def process_orderbook(self, data):
         """订单簿推送"""
         symbol = data['code']
-
+        print("order book %s" % str(data))
         tick = self._tick_dict.get(symbol, None)
         if not tick:
             tick = TinyQuoteData()
@@ -384,7 +497,7 @@ class FutuDataEvent(object):
             d['askVolume%s' % n] = ask_data[1]
 
             new_tick = copy(tick)
-        self._notify_new_tick_event(new_tick)
+        self._notify_quote_change_event(new_tick)
 
     def process_curkline(self, data):
         """k线实时数据推送"""
