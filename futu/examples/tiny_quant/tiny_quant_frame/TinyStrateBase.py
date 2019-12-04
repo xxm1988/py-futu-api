@@ -42,26 +42,22 @@ class TinyStrateBase(object):
     @abstractmethod
     def on_tick_changed(self, tiny_tick):
         """tick变化时，会触发该回调"""
-        # TinyQuoteData
-        data = tiny_tick
-        str_log = "on_tick_changed code=%s time=%s price=%s volume=%s turnover=%s" % (data.code, data.time, data.price, data.volume, data.turnover)
-        self.log(str_log)
+        self.log(tiny_tick)
 
     @abstractmethod
     def on_rt_changed(self, rt_data):
         """分时变化时，会触发该回调"""
-        # TinyQuoteData
-        data = rt_data
-        str_log = "on_rt_changed code=%s time=%s cur_price=%s avg_price=%s turnover=%s volume=%s" % (data.code, data.time, data.cur_price, data.avg_price, data.turnover, data.volume)
-        self.log(str_log)
+        self.log(rt_data)
 
     @abstractmethod
     def on_quote_changed(self, tiny_quote):
-        """报价、摆盘实时数据变化时，会触发该回调"""
-        # TinyQuoteData
-        data = tiny_quote
-        str_log = "on_quote_changed symbol=%s open=%s high=%s close=%s low=%s" % (data.symbol, data.openPrice, data.highPrice, data.lastPrice, data.lowPrice)
-        self.log(str_log)
+        """报价实时数据变化时，会触发该回调"""
+        self.log(tiny_quote)
+
+    @abstractmethod
+    def on_order_book(self, order_book):
+        """摆盘实时数据变化时，会触发该回调"""
+        self.log(order_book)
 
     @abstractmethod
     def on_bar_min1(self, tiny_bar):
@@ -179,6 +175,7 @@ class TinyStrateBase(object):
         self._event_engine.register(EVENT_BEFORE_TRADING, self.__event_before_trading)
         self._event_engine.register(EVENT_AFTER_TRADING, self.__event_after_trading)
         self._event_engine.register(EVENT_QUOTE_CHANGE, self.__event_quote_change)
+        self._event_engine.register(EVENT_ORDER_BOOK, self.__event_order_book)
         self._event_engine.register(EVENT_RT_DATA, self.__event_rt_data)
         self._event_engine.register(EVENT_TINY_TICK, self.__event_tiny_tick)
         self._event_engine.register(EVENT_CUR_KLINE_BAR, self.__event_cur_kline_bar)
@@ -244,6 +241,13 @@ class TinyStrateBase(object):
             return
         tiny_quote = event.dict_['data']
         self.on_quote_changed(tiny_quote)
+
+    def __event_order_book(self, event):
+        # 没开盘不向外推送数据
+        if not self._market_opened:
+            return
+        order_book = event.dict_['data']
+        self.on_order_book(order_book)
 
     def __event_cur_kline_bar(self, event):
         symbol = event.dict_['symbol']

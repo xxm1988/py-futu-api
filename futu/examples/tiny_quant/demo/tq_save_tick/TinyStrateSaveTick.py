@@ -202,25 +202,28 @@ class TinyStrateSaveTick(TinyStrateBase):
 
     def on_tick_changed(self, tiny_tick):
         """tick变化时，会触发该回调"""
-        data = tiny_tick
         #print(tiny_tick)
-        str_log = "on_tick_changed code=%s time=%s price=%s volume=%s turnover=%s" % (data.code, data.time, data.price, data.volume, data.turnover)
-        #self.log(str_log)
+        self.log("tick data:"+json.dumps(tiny_tick,indent=4))
+        return True
 
     def on_rt_changed(self, rt_data):
         """分时变化时，会触发该回调"""
-        data = rt_data
-        str_log = "on_rt_changed code=%s time=%s cur_price=%s avg_price=%s turnover=%s volume=%s" % (data.code, data.time, data.cur_price, data.avg_price, data.turnover, data.volume)
-        #self.log(str_log)
+        #print(rt_data)
+        self.log("rt data:"+json.dumps(rt_data,indent=4))
+        return True
 
     def on_quote_changed(self, tiny_quote):
-        """报价、摆盘实时数据变化时，会触发该回调"""
-        # TinyQuoteData
-        data   = tiny_quote
-        symbol = data.symbol
-        #self.log("get data from symbol{%s} time[%s] datetime[%s] lastPrice[%s]" % (symbol,data.time,data.datetime,data.lastPrice))
-        #self.log("get tiny quote is  symbol{%s} time[%s] date[%s] datetime[%s] lastPrice[%s]" % (tiny_quote.symbol,tiny_quote.time,tiny_quote.date,tiny_quote.datetime,tiny_quote.lastPrice))
+        """报价实时数据变化时，会触发该回调"""
+        #print(tiny_quote)
+        self.log("quote data:"+json.dumps(tiny_quote,indent=4))
         #self.data_queue_dict[symbol].put(data)
+        return True
+
+    def on_order_book(self, order_book):
+        """摆盘实时数据变化时，会触发该回调"""
+        #print(order_book)
+        self.log("order book:"+json.dumps(order_book,indent=4))
+        return True
 
     def on_bar_min1(self, tiny_bar):
         """每一分钟触发一次回调"""

@@ -1,0 +1,185 @@
+2019-12-04 15:53:58,281  INFO: tiny_strate_save_tick:order book:{
+    "code": "HK.00700",
+    "svr_recv_time_bid": "2019-12-04 15:53:57.484",
+    "svr_recv_time_ask": "2019-12-04 15:53:57.484",
+    "Bid": [
+        [
+            327.4,
+            32200,
+            31
+        ],
+        [
+            327.2,
+            87100,
+            34
+        ],
+        [
+            327.0,
+            169800,
+            96
+        ],
+        [
+            326.8,
+            18600,
+            25
+        ],
+        [
+            326.6,
+            58200,
+            34
+        ],
+        [
+            326.4,
+            57800,
+            15
+        ],
+        [
+            326.2,
+            68200,
+            30
+        ],
+        [
+            326.0,
+            120100,
+            181
+        ],
+        [
+            325.8,
+            26100,
+            32
+        ],
+        [
+            325.6,
+            13600,
+            46
+        ]
+    ],
+    "Ask": [
+        [
+            327.6,
+            25900,
+            14
+        ],
+        [
+            327.8,
+            24200,
+            18
+        ],
+        [
+            328.0,
+            29100,
+            20
+        ],
+        [
+            328.2,
+            50400,
+            14
+        ],
+        [
+            328.4,
+            56500,
+            14
+        ],
+        [
+            328.6,
+            70600,
+            12
+        ],
+        [
+            328.8,
+            71500,
+            8
+        ],
+        [
+            329.0,
+            37900,
+            11
+        ],
+        [
+            329.2,
+            31900,
+            7
+        ],
+        [
+            329.4,
+            28500,
+            8
+        ]
+    ]
+}
+
+2019-12-04 15:53:58,282  INFO: tiny_strate_save_tick:quote data:{
+    "code": "HK.00700",
+    "data_date": "2019-12-04",
+    "data_time": "15:53:58",
+    "last_price": 327.4,
+    "open_price": 327.8,
+    "high_price": 329.4,
+    "low_price": 325.4,
+    "prev_close_price": 331.0,
+    "volume": 9957656,
+    "turnover": 3265569152.0,
+    "turnover_rate": 0.104,
+    "amplitude": 1.208,
+    "suspension": false,
+    "listing_date": "2004-06-16",
+    "price_spread": 0.2,
+    "dark_status": "N/A",
+    "sec_status": "NORMAL",
+    "strike_price": "N/A",
+    "contract_size": "N/A",
+    "open_interest": "N/A",
+    "implied_volatility": "N/A",
+    "premium": "N/A",
+    "delta": "N/A",
+    "gamma": "N/A",
+    "vega": "N/A",
+    "theta": "N/A",
+    "rho": "N/A",
+    "net_open_interest": "N/A",
+    "expiry_date_distance": "N/A",
+    "contract_nominal_value": "N/A",
+    "owner_lot_multiplier": "N/A",
+    "option_area_type": "N/A",
+    "contract_multiplier": "N/A",
+    "pre_price": "N/A",
+    "pre_high_price": "N/A",
+    "pre_low_price": "N/A",
+    "pre_volume": "N/A",
+    "pre_turnover": "N/A",
+    "pre_change_val": "N/A",
+    "pre_change_rate": "N/A",
+    "pre_amplitude": "N/A",
+    "after_price": "N/A",
+    "after_high_price": "N/A",
+    "after_low_price": "N/A",
+    "after_volume": "N/A",
+    "after_turnover": "N/A",
+    "after_change_val": "N/A",
+    "after_change_rate": "N/A",
+    "after_amplitude": "N/A"
+}
+
+2019-12-04 15:53:58,285  INFO: tiny_strate_save_tick:rt data:{
+    "code": "HK.00700",
+    "time": "2019-12-04 15:54:00",
+    "is_blank": false,
+    "opened_mins": 954,
+    "cur_price": 327.4,
+    "last_close": 331.0,
+    "avg_price": 327.90776333908053,
+    "turnover": 11695900.0,
+    "volume": 35700
+}
+
+2019-12-04 15:53:59,401  INFO: tiny_strate_save_tick:tick data:{
+    "code": "HK.00700",
+    "time": "2019-12-04 15:53:59",
+    "price": 327.4,
+    "volume": 2000,
+    "turnover": 654800.0,
+    "ticker_direction": "SELL",
+    "sequence": 6766489214117749202,
+    "type": "AUTO_MATCH",
+    "push_data_type": "REALTIME"
+}

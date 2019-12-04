@@ -20,7 +20,7 @@ class FutuDataEvent(object):
         self._event_engine = event_engine
         self._symbol_pools = symbol_pools
         self._tick_dict = {}
-        self._market_opened= False
+        self._market_opened= True
 
         # 控制频率，1秒钟最多推送quote多少次
         self._push_event_freq = 10
@@ -200,11 +200,8 @@ class FutuDataEvent(object):
     def _notify_new_tick_event(self, tiny_tick):
         """tick推送"""
         #print("running _notify_new_tick_event")
-        if tiny_tick.time is '':
-            print("time is null")
-            return False
         if not self._market_opened:
-            print("market not being")
+            print("get tick market not opened")
             return False
         event = Event(type_=EVENT_TINY_TICK)
         event.dict_['data'] = tiny_tick
@@ -212,38 +209,32 @@ class FutuDataEvent(object):
 
     def _notify_rt_data_event(self, tiny_rt):
         """rt推送"""
-        if tiny_rt.time is '':
-            print("time is null")
-            return False
         if not self._market_opened:
-            print("market not being")
+            print("get rt market not opened")
             return False
         event = Event(type_=EVENT_RT_DATA)
         event.dict_['data'] = tiny_rt
         self._event_engine.put(event)
 
     def _notify_quote_change_event(self, tiny_quote):
-        """报价摆盘推送"""
+        """报价推送"""
         #print("notify quote change")
         if not self._market_opened:
-            print("market not being")
+            print("quote market not opened")
             return False
-
         event = Event(type_=EVENT_QUOTE_CHANGE)
         event.dict_['data'] = tiny_quote
-        self._rt_tiny_quote[tiny_quote.symbol] = tiny_quote
+        self._rt_tiny_quote[tiny_quote['code']] = tiny_quote
         self._event_engine.put(event)
 
     def _notify_order_book_event(self, order_book):
-        """报价摆盘推送"""
+        """摆盘推送"""
         #print("notify quote change")
         if not self._market_opened:
-            print("market not being")
+            print("order book market not opened")
             return False
-
         event = Event(type_=EVENT_ORDER_BOOK)
         event.dict_['data'] = order_book
-        self._rt_tiny_quote[order_book.symbol] = order_book
         self._event_engine.put(event)
 
     def _event_tiny_tick(self, event):
@@ -253,7 +244,7 @@ class FutuDataEvent(object):
 
     def _event_rt_data(self, event):
         tick = event.dict_['data']
-        #self._notify_rt_data_event(tick)
+        self._notify_rt_data_event(tick)
 
     def _event_tiny_quote(self, event):
         tick = event.dict_['data']
@@ -398,106 +389,26 @@ class FutuDataEvent(object):
     def process_quote(self, data):
         """报价推送"""
         #print("quote length is %s" % len(data))
-        print("quote data %s" % str(data))
+        #print("quote data %s" % str(data))
         for ix, row in data.iterrows():
-            symbol = row['code']
-            tick = self._tick_dict.get(symbol, None)
-            if not tick:
-                tick = TinyQuoteData()
-                tick.symbol = symbol
-                self._tick_dict[symbol] = tick
-
-            tick.date = row['data_date'].replace('-', '')
-            tick.time = row['data_time']
-            # with GLOBAL.dt_lock:
-            if tick.date and tick.time:
-                tick.datetime = datetime.strptime(' '.join([tick.date, tick.time]), '%Y%m%d %H:%M:%S')
-            else:
-                return
-
-            tick.openPrice = row['open_price']
-            tick.highPrice = row['high_price']
-            tick.lowPrice = row['low_price']
-            tick.preClosePrice = row['prev_close_price']
-            # 1.25 新增摆盘价差，方便计算正确的订单提交价格 要求牛牛最低版本 v3.42.4961.125
-            if 'price_spread' in row:
-                tick.priceSpread = row['price_spread']
-
-            tick.lastPrice = row['last_price']
-            tick.volume = row['volume']
-
-            new_tick = copy(tick)
-            self._notify_quote_change_event(new_tick)
+            self._notify_quote_change_event(row.to_dict())
 
     def process_tick(self, data):
         """tick推送"""
         #print("tick length is %s" % len(data))
-
         for ix, row in data.iterrows():
-            symbol = row['code']
-            tick = self._tick_dict.get(symbol, None)
-            if not tick:
-                tick = TinyTickData()
-                tick.symbol = symbol
-                self._tick_dict[symbol] = tick
-            tick.code = row['code']
-            tick.time = row['time']
-            tick.price = row['price']
-            tick.volume = row['volume']
-            tick.turnover = row['turnover']
-            tick.ticker_direction = row['ticker_direction']
-            tick.sequence = row['sequence']
-            tick.type = row['type']
-            tick.push_data_type = row['push_data_type']
-            new_tick = copy(tick)
-            self._notify_new_tick_event(new_tick)
+            self._notify_new_tick_event(row.to_dict())
 
     def process_rt(self, data):
         """rt_data推送"""
         #print("rt data length is %s" % len(data))
         for ix, row in data.iterrows():
-            symbol = row['code']
-
-            tick = self._tick_dict.get(symbol, None)
-            if not tick:
-                tick = TinyRTData()
-                tick.symbol = symbol
-                self._tick_dict[symbol] = tick
-            tick.code = row['code']
-            tick.time = row['time']
-            tick.is_blank = row['is_blank']
-            tick.opened_mins = row['opened_mins']
-            tick.cur_price = row['cur_price']
-            tick.last_close = row['last_close']
-            tick.avg_price = row['avg_price']
-            tick.turnover = row['turnover']
-            tick.volume = row['volume']
-            new_tick = copy(tick)
-            self._notify_rt_data_event(new_tick)
+            self._notify_rt_data_event(row.to_dict())
 
     def process_orderbook(self, data):
         """订单簿推送"""
-        symbol = data['code']
-        print("order book %s" % str(data))
-        tick = self._tick_dict.get(symbol, None)
-        if not tick:
-            tick = TinyQuoteData()
-            tick.symbol = symbol
-            self._tick_dict[symbol] = tick
-
-        d = tick.__dict__
-        for i in range(5):
-            bid_data = data['Bid'][i]
-            ask_data = data['Ask'][i]
-            n = i + 1
-
-            d['bidPrice%s' % n] = bid_data[0]
-            d['bidVolume%s' % n] = bid_data[1]
-            d['askPrice%s' % n] = ask_data[0]
-            d['askVolume%s' % n] = ask_data[1]
-
-            new_tick = copy(tick)
-        self._notify_quote_change_event(new_tick)
+        #print("order book %s" % str(data))
+        self._notify_order_book_event(data)
 
     def process_curkline(self, data):
         """k线实时数据推送"""
