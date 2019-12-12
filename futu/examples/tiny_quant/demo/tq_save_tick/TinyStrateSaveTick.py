@@ -24,11 +24,13 @@ class SaveTickData():
             self.sqlitedb_tick  = sqlite3.connect(u"D:\\StockData\\stock_tick.db")
             self.sqlitedb_quote = sqlite3.connect(u"D:\\StockData\\stock_quote.db")
             self.sqlitedb_rt    = sqlite3.connect(u"D:\\StockData\\stock_rt.db")
+            self.sqlitedb_war   = sqlite3.connect(u"D:\\StockData\\stock_warrant.db")
         else:
             self.sqlitedb_order = sqlite3.connect(u"/data/ft_hist_data/tick_data/stock_order.db")
             self.sqlitedb_tick  = sqlite3.connect(u"/data/ft_hist_data/tick_data/stock_tick.db")
             self.sqlitedb_quote = sqlite3.connect(u"/data/ft_hist_data/tick_data/stock_quote.db")
             self.sqlitedb_rt    = sqlite3.connect(u"/data/ft_hist_data/tick_data/stock_rt.db")
+            self.sqlitedb_war   = sqlite3.connect(u"/data/ft_hist_data/tick_data/stock_warrant.db")
 
     def __del__(self):
         self.sqlitedb_order.close()
@@ -43,6 +45,8 @@ class SaveTickData():
             cu = self.sqlitedb_quote.cursor()
         elif db == "rt":
             cu = self.sqlitedb_rt.cursor()
+        elif db == "war":
+            cu = self.sqlitedb_war.cursor()
         else:
             cu = self.sqlitedb_order.cursor()
         #print(sql_cmd)
@@ -53,6 +57,8 @@ class SaveTickData():
             self.sqlitedb_quote.commit()
         elif db == "rt":
             self.sqlitedb_rt.commit()
+        elif db == "war":
+            self.sqlitedb_war.commit()
         else:
             self.sqlitedb_order.commit()
         return cu.fetchall()
@@ -64,6 +70,8 @@ class SaveTickData():
             cu = self.sqlitedb_quote.cursor()
         elif db == "rt":
             cu = self.sqlitedb_rt.cursor()
+        elif db == "war":
+            cu = self.sqlitedb_war.cursor()
         else:
             cu = self.sqlitedb_order.cursor()
         #print("begin to insert data length is [%s]" % len(insertDataList))
@@ -76,9 +84,24 @@ class SaveTickData():
             self.sqlitedb_quote.commit()
         elif db == "rt":
             self.sqlitedb_rt.commit()
+        elif db == "war":
+            self.sqlitedb_war.commit()
         else:
             self.sqlitedb_order.commit()
         return cu.fetchall()
+
+    def create_warrant_table(self):
+        sql_cmd_create = """create TABLE IF NOT EXISTS  stock_ref_warrant (
+                            [code] TEXT,
+                            [date] DATE,
+                            [bull_1] TEXT,
+                            [bull_2] TEXT,
+                            [bull_3] TEXT,
+                            [bear_1] TEXT,
+                            [bear_2] TEXT,
+                            [bear_3] TEXT,
+                            PRIMARY KEY([code], [date])) """
+        self.exe_sql(sql_cmd_create,db='war')
 
     def create_tick_table(self):
         sql_cmd_create = """create TABLE IF NOT EXISTS  tick_data_%s (
@@ -167,6 +190,13 @@ class SaveTickData():
                             [bid] TEXT,
                             [ask] TEXT) """  % self.stock_code
         self.exe_sql(sql_cmd_create,db='order')
+
+    def save_data_warrant(self,bull_list,bear_list):
+        sql_cmd = """ replace into stock_ref_warrant(code,date,bull_1,bull_2,bull_3,bear_1,bear_2,bear_3) 
+                      values('%s','%s','%s','%s','%s','%s','%s','%s') 
+                  """ % (self.stock_code,datetime.now().strftime('%Y-%m-%d'),bull_list[0],bull_list[1],bull_list[2],bear_list[0],bear_list[1],bear_list[2])
+        result = self.exe_sql(sql_cmd,db='war')
+        return result
 
     def save_data_tick(self,data_list):
         sql_cmd = """ replace into tick_data_%s(code,time,price,volume,turnover,ticker_direction,sequence,type,push_data_type) values(?,?,?,?,?,?,?,?,?) """ % self.stock_code
@@ -275,7 +305,7 @@ class TinyStrateSaveTick(TinyStrateBase):
 
     """策略需要用到行情数据的股票池"""
     symbol_pools = ['HK.00700']
-    #symbol_pools = ['HK.00700']
+    symbol_pools = ['HK.800000']
 
     def __init__(self):
         super(TinyStrateSaveTick, self).__init__()
@@ -290,6 +320,34 @@ class TinyStrateSaveTick(TinyStrateBase):
         1. 可修改symbol_pools 或策略内部其它变量的初始化
         2. 此时还不能调用futu api的接口
         """
+        self.log("begin to init strate")
+        from futu import OpenQuoteContext,mytool
+        quote_ctx = OpenQuoteContext(host='127.0.0.1', port=11111)
+        fsw_obj   = mytool.FindStockWarrent(quote_ctx, "HK.800000")
+        bear_list_800000, bull_list_800000 = fsw_obj.get_best_warrant()
+
+        fsw_obj = mytool.FindStockWarrent(quote_ctx, "HK.00700")
+        bear_list_00700, bull_list_00700 = fsw_obj.get_best_warrant()
+
+        std_obj = SaveTickData(stock_code="HK.800000")
+        std_obj.create_warrant_table()
+        std_obj.save_data_warrant(bull_list_800000,bear_list_800000)
+
+        std_obj = SaveTickData(stock_code="HK.00700")
+        std_obj.create_warrant_table()
+        std_obj.save_data_warrant(bull_list_00700, bear_list_00700)
+
+        TinyStrateSaveTick.symbol_pools = ['HK.00700','HK.800000']
+        for i in range(3):
+            if bear_list_800000[i]:
+                TinyStrateSaveTick.symbol_pools.append(json.loads(bear_list_800000[i])['stock'])
+            if bull_list_800000[i]:
+                TinyStrateSaveTick.symbol_pools.append(json.loads(bull_list_800000[i])['stock'])
+            if bear_list_00700[i]:
+                TinyStrateSaveTick.symbol_pools.append(json.loads(bear_list_00700[i])['stock'])
+            if bull_list_00700[i]:
+                TinyStrateSaveTick.symbol_pools.append(json.loads(bull_list_00700[i])['stock'])
+        self.log("get symbol list is %s" % TinyStrateSaveTick.symbol_pools)
         for symbol in TinyStrateSaveTick.symbol_pools:
             self.data_queue_dict[symbol] = multiprocessing.Manager().Queue()
             p = multiprocessing.Process(target=save_data,args=(symbol,self.data_queue_dict[symbol]))
@@ -390,6 +448,8 @@ class TinyStrateSaveTick(TinyStrateBase):
         """收盘时触发一次回调, 脚本挂机时，港股会在16:00:00回调"""
         str_log = "on_after_trading - %s" % date_time.strftime('%Y-%m-%d %H:%M:%S')
         self.log(str_log)
+        import sys
+        sys.exit()
 
     def sma(self, np_array, n, array=False):
         """简单均线"""
