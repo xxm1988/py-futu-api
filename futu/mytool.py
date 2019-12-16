@@ -21,7 +21,7 @@ class FindStockWarrent():
         req.ascend = False
         req.status = WarrantStatus.NORMAL  # Qot_Common.WarrantStatus, 窝轮状态
         req.street_min = 10     # 街货占比 % 过滤起点
-        req.vol_min    = 1000   # 成交量过滤起点
+        #req.vol_min    = 1000   # 成交量过滤起点
         req.premium_min = None  # 溢价 % 过滤起点
         req.maturity_time_min = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")  # 到期日, 到期日范围的开始时间戳
         if wrt_type == "bull":
