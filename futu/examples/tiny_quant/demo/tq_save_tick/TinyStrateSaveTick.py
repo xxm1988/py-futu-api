@@ -474,4 +474,5 @@ if __name__ == '__main__':
     my_strate = TinyStrateSaveTick()
     frame = TinyQuantFrame(my_strate)
     frame.run()
+    frame.stop()
 

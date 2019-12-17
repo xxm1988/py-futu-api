@@ -186,7 +186,7 @@ class TinyQuantFrame(object):
                 self.log_path = os.path.join(os.getenv("appdata"), __LogPathName__)
             else:
                 self.log_path = os.path.join(os.environ['HOME'], ("." + __LogPathName__))
-            print(self.log_path)
+
             # 添加NullHandler防止无handler的错误输出
             null_handler = logging.NullHandler()
             self._logger.addHandler(null_handler)
