@@ -448,8 +448,6 @@ class TinyStrateSaveTick(TinyStrateBase):
         """收盘时触发一次回调, 脚本挂机时，港股会在16:00:00回调"""
         str_log = "on_after_trading - %s" % date_time.strftime('%Y-%m-%d %H:%M:%S')
         self.log(str_log)
-        import sys
-        sys.exit()
 
     def sma(self, np_array, n, array=False):
         """简单均线"""
