@@ -12,6 +12,7 @@ class StockQuoteTest(StockQuoteHandlerBase):
     def on_recv_rsp(self, rsp_pb):
         """数据响应回调函数"""
         ret_code, content = super(StockQuoteTest, self).on_recv_rsp(rsp_pb)
+        print(ret_code)
         if ret_code != RET_OK:
             logger.debug("StockQuoteTest: error, msg: %s" % content)
             return RET_ERROR, content
@@ -74,6 +75,7 @@ def quote_test():
     #sub_codes = ['HK.00700', 'HK_FUTURE.999010']
     sub_codes = ['HK.800000',]
     print("* subscribe : {}\n".format(quote_ctx.subscribe(sub_codes, subtype_list)))
+    print(quote_ctx.query_subscription())
     while True:
         sleep(60*60*24)
     quote_ctx.close()
