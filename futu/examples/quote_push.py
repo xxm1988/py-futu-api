@@ -71,7 +71,8 @@ def quote_test():
                      'HK.01114', 'HK.02800', 'HK.02018', 'HK.03988', 'HK.00386', 'HK.01211',
                      'HK.00700', 'HK.01177', 'HK.02601', 'HK.02628', 'HK_FUTURE.999010']
     subtype_list = [SubType.QUOTE, SubType.ORDER_BOOK, SubType.TICKER, SubType.BROKER]
-    sub_codes = ['HK.00700', 'HK_FUTURE.999010']
+    #sub_codes = ['HK.00700', 'HK_FUTURE.999010']
+    sub_codes = ['HK.800000',]
     print("* subscribe : {}\n".format(quote_ctx.subscribe(sub_codes, subtype_list)))
     while True:
         sleep(60*60*24)
