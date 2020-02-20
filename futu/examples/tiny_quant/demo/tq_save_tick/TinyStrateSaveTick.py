@@ -386,15 +386,15 @@ class TinyStrateSaveTick(TinyStrateBase):
 
     def on_rt_changed(self, rt_data):
         """分时变化时，会触发该回调"""
-        #print(rt_data)
-        #self.log("rt data:"+json.dumps(rt_data,indent=4))
+        print(rt_data)
+        self.log("rt data:"+json.dumps(rt_data,indent=4))
         self.data_queue_dict[rt_data['code']].put(["rt", rt_data])
         return True
 
     def on_quote_changed(self, tiny_quote):
         """报价实时数据变化时，会触发该回调"""
-        #print(tiny_quote)
-        #self.log("quote data:"+json.dumps(tiny_quote,indent=4))
+        print(tiny_quote)
+        self.log("quote data:"+json.dumps(tiny_quote,indent=4))
         self.data_queue_dict[tiny_quote['code']].put(["quote", tiny_quote])
         return True
 

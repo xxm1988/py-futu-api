@@ -229,7 +229,7 @@ class FutuDataEvent(object):
 
     def _notify_order_book_event(self, order_book):
         """摆盘推送"""
-        #print("notify quote change")
+        print("notify quote change")
         if not self._market_opened:
             print("order book market not opened")
             return False
@@ -239,7 +239,7 @@ class FutuDataEvent(object):
 
     def _event_tiny_tick(self, event):
         tick = event.dict_['data']
-        #print("running _event_tiny_tick")
+        print("running _event_tiny_tick")
         self._notify_new_tick_event(tick)
 
     def _event_rt_data(self, event):
@@ -395,13 +395,13 @@ class FutuDataEvent(object):
 
     def process_tick(self, data):
         """tick推送"""
-        #print("tick length is %s" % len(data))
+        print("tick length is %s" % len(data))
         for ix, row in data.iterrows():
             self._notify_new_tick_event(row.to_dict())
 
     def process_rt(self, data):
         """rt_data推送"""
-        #print("rt data length is %s" % len(data))
+        print("rt data length is %s" % len(data))
         for ix, row in data.iterrows():
             self._notify_rt_data_event(row.to_dict())
 
