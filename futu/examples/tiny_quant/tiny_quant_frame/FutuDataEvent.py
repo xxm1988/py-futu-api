@@ -36,7 +36,7 @@ class FutuDataEvent(object):
         self._sym_kline_next_event_bar_dic = {} # 记录下一个准备推送的bar
 
         # 注册事件
-        # self._event_engine.register(EVENT_TINY_TICK, self._event_tiny_tick)
+        # self.h7uihiuhuih8io90plo[p-[.;.=..--=-=[p.register(EVENT_TINY_TICK, self._event_tiny_tick)
         # self._event_engine.register(EVENT_QUOTE_CHANGE, self._event_tiny_quote)
         # self._event_engine.register(EVENT_RT_DATA, self._event_rt_data)
         # self._event_engine.register(EVENT_CUR_KLINE_PUSH, self._event_cur_kline_push)
@@ -199,7 +199,7 @@ class FutuDataEvent(object):
 
     def _notify_new_tick_event(self, tiny_tick):
         """tick推送"""
-        #print("running _notify_new_tick_event")
+        print("notify tick change")
         if not self._market_opened:
             print("get tick market not opened")
             return False
@@ -209,6 +209,7 @@ class FutuDataEvent(object):
 
     def _notify_rt_data_event(self, tiny_rt):
         """rt推送"""
+        print("notify rt change")
         if not self._market_opened:
             print("get rt market not opened")
             return False
@@ -218,7 +219,7 @@ class FutuDataEvent(object):
 
     def _notify_quote_change_event(self, tiny_quote):
         """报价推送"""
-        #print("notify quote change")
+        print("notify quote change")
         if not self._market_opened:
             print("quote market not opened")
             return False
@@ -229,7 +230,7 @@ class FutuDataEvent(object):
 
     def _notify_order_book_event(self, order_book):
         """摆盘推送"""
-        print("notify quote change")
+        print("notify order change")
         if not self._market_opened:
             print("order book market not opened")
             return False
