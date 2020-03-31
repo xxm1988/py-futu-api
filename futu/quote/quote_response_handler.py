@@ -50,7 +50,8 @@ class StockQuoteHandlerBase(RspHandlerBase):
                 'contract_size', 'open_interest', 'implied_volatility',
                 'premium', 'delta', 'gamma', 'vega', 'theta', 'rho',
                 'net_open_interest', 'expiry_date_distance', 'contract_nominal_value', 
-                'owner_lot_multiplier', 'option_area_type', 'contract_multiplier', 
+                'owner_lot_multiplier', 'option_area_type', 'contract_multiplier',
+                'last_settle_price','position','position_change'
             ]
 
             col_list.extend(row[0] for row in pb_field_map_PreAfterMarketData_pre)
@@ -142,7 +143,7 @@ class CurKlineHandlerBase(RspHandlerBase):
         else:
             col_list = [
                 'code', 'time_key', 'open', 'close', 'high', 'low', 'volume',
-                'turnover', 'k_type'
+                'turnover', 'k_type', 'last_close'
             ]
             kline_frame_table = pd.DataFrame(content, columns=col_list)
 
@@ -364,3 +365,40 @@ class AsyncHandler_InitConnect(RspHandlerBase):
 #             return ret_code, msg
 #         else:
 #             return ret_code, data
+
+class PriceReminderHandlerBase(RspHandlerBase):
+    """
+    异步处理推送的订阅股票的报价。
+
+    .. code:: python
+
+        class PriceReminderTest(PriceReminderHandlerBase):
+            def on_recv_rsp(self, rsp_str):
+                ret_code, content = super(PriceReminderTest,self).on_recv_rsp(rsp_str)
+                if ret_code != RET_OK:
+                    print("PriceReminderTest: error, msg: %s" % content)
+                    return RET_ERROR, content
+
+                print("PriceReminderTest ", content) # PriceReminderTest自己的处理逻辑
+
+                return RET_OK, content
+    """
+    @classmethod
+    def parse_rsp_pb(cls, rsp_pb):
+        ret_code, msg, data = UpdatePriceReminder.unpack_rsp(rsp_pb)
+        if ret_code != RET_OK:
+            return ret_code, msg
+        else:
+            return RET_OK, data
+
+    def on_recv_rsp(self, rsp_pb):
+        """
+        在收到实时报价推送后会回调到该函数，使用者需要在派生类中覆盖此方法
+
+        注意该回调是在独立子线程中
+
+        :param rsp_pb: 派生类中不需要直接处理该参数
+        :return: 参见get_stock_quote的返回值
+        """
+        ret_code, content = self.parse_rsp_pb(rsp_pb)
+        return ret_code, content
