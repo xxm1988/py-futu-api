@@ -1,7 +1,7 @@
 #! /bin/bash
 
 echo "[`date '+%Y-%m-%d %H:%M:%S'`]begin to run save_data" >> run.log
-cd /data/py-futu-api/futu/examples/tiny_quant/demo/tq_save_tick
+cd /data/py-futu-api/futu/examples
 
 # Source global definitions
 if [ -f /etc/bashrc ]; then
