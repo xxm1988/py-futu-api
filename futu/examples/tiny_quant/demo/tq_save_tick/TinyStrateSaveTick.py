@@ -379,7 +379,7 @@ class TinyStrateSaveTick(TinyStrateBase):
 
     def on_tick_changed(self, tiny_tick):
         """tick变化时，会触发该回调"""
-        #print(tiny_tick)
+        print(tiny_tick)
         #self.log("tick data:"+json.dumps(tiny_tick,indent=4))
         self.data_queue_dict[tiny_tick['code']].put(["tick", tiny_tick])
         return True
@@ -400,7 +400,7 @@ class TinyStrateSaveTick(TinyStrateBase):
 
     def on_order_book(self, order_book):
         """摆盘实时数据变化时，会触发该回调"""
-        #print(order_book)
+        print(order_book)
         #self.log("order book:"+json.dumps(order_book,indent=4))
         self.data_queue_dict[order_book['code']].put(["order", order_book])
         return True
