@@ -569,6 +569,12 @@ class OpenContextBase(object):
 
     def __del__(self):
         self._close()
+        
+    def __enter__(self):
+        pass
+
+    def __exit__(self, t, v, tb):
+        self._close()
 
     @property
     def status(self):
@@ -802,7 +808,8 @@ class OpenContextBase(object):
                 market_us               str            美国市场状态，参见MarketState
                 market_sh               str            上海市场状态，参见MarketState
                 market_hk               str            香港市场状态，参见MarketState
-                market_future           str            香港期货市场状态，参见MarketState
+                market_hkfuture         str            香港期货市场状态，参见MarketState
+                market_usfuture         str            美国期货市场状态，参见MarketState
                 server_ver              str            FutuOpenD版本号
                 trd_logined             str            '1'：已登录交易服务器，'0': 未登录交易服务器
                 qot_logined             str            '1'：已登录行情服务器，'0': 未登录行情服务器
@@ -971,11 +978,13 @@ class OpenContextBase(object):
                                                                                  self.__port))
             net_mgr = self._net_mgr
             conn_id = self._conn_id
+
             self._status = ContextStatus.CONNECTING
             self._sync_conn_id = 0
             self._conn_id = 0
             self._keep_alive_fail_count = 0
             self._reconnect_timer = Timer(wait_reconnect_interval, self._reconnect)
+            self._sync_req_ret = None
             self._reconnect_timer.start()
 
         net_mgr.close(conn_id)

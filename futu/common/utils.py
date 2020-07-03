@@ -1060,17 +1060,6 @@ class ProtobufMap(dict):
         from futu.common.pb.Qot_UpdatePriceReminder_pb2 import Response
         ProtobufMap.created_protobuf_map[ProtoId.Qot_UpdatePriceReminder] = Response()
 
-        """ Qot_GetHistoryKL = 3100  # 获取历史K线 """
-        from futu.common.pb.Qot_GetHistoryKL_pb2 import Response
-        ProtobufMap.created_protobuf_map[ProtoId.Qot_GetHistoryKL] = Response()
-
-        """ Qot_GetHistoryKLPoints = 3101  # 获取多只股票历史单点K线 """
-        from futu.common.pb.Qot_GetHistoryKLPoints_pb2 import Response
-        ProtobufMap.created_protobuf_map[ProtoId.Qot_GetHistoryKLPoints] = Response()
-
-        """ Qot_GetRehab = 3102  # 获取复权信息 """
-        from futu.common.pb.Qot_GetRehab_pb2 import Response
-        ProtobufMap.created_protobuf_map[ProtoId.Qot_GetRehab] = Response()
 
         """ Qot_GetTradeDate = 3200  # 获取市场交易日 """
         from futu.common.pb.Qot_GetTradeDate_pb2 import Response
@@ -1098,7 +1087,7 @@ class ProtobufMap(dict):
 
         """ Trd_GetMaxTrdQtys = 2111 查询最大买卖数量 """
         from futu.common.pb.Trd_GetMaxTrdQtys_pb2 import Response
-        ProtobufMap.created_protobuf_map[ProtoId.Trd_GetAccTradingInfo] = Response()
+        ProtobufMap.created_protobuf_map[ProtoId.Trd_GetMaxTrdQtys] = Response()
 
         """ Qot_GetReference = 3206  获取正股相关股票，暂时只有窝轮"""
         from futu.common.pb.Qot_GetReference_pb2 import Response
@@ -1128,7 +1117,7 @@ class ProtobufMap(dict):
 
         """ Qot_GetWarrantData = 3210 获取涡轮 """
         from futu.common.pb.Qot_GetWarrant_pb2 import Response as GetWarrantPBResponse
-        ProtobufMap.created_protobuf_map[ProtoId.Qot_GetWarrantData] = GetWarrantPBResponse()
+        ProtobufMap.created_protobuf_map[ProtoId.Qot_GetWarrant] = GetWarrantPBResponse()
 
         """ Qot_GetOrderDetail = 3104 已使用过的额度 """
         from futu.common.pb.Qot_RequestHistoryKLQuota_pb2 import Response
@@ -1170,6 +1159,9 @@ class ProtobufMap(dict):
 
         from futu.common.pb.Qot_GetPriceReminder_pb2 import Response
         ProtobufMap.created_protobuf_map[ProtoId.Qot_GetPriceReminder] = Response()
+
+        from futu.common.pb.Qot_GetUserSecurityGroup_pb2 import Response
+        ProtobufMap.created_protobuf_map[ProtoId.Qot_GetUserSecurityGroup] = Response()
 
     def __getitem__(self, key):
         return ProtobufMap.created_protobuf_map[key] if key in ProtobufMap.created_protobuf_map else None

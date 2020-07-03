@@ -169,6 +169,7 @@ def quote_test():
     quote_ctx.start()
 
     # 获取推送数据
+<<<<<<< HEAD
     big_sub_codes = ['HK.02318', 'HK.02828', 'HK.00939', 'HK.01093', 'HK.01299', 'HK.00175',
                      'HK.01299', 'HK.01833', 'HK.00005', 'HK.00883', 'HK.00388', 'HK.01398',
                      'HK.01114', 'HK.02800', 'HK.02018', 'HK.03988', 'HK.00386', 'HK.01211',
@@ -181,6 +182,11 @@ def quote_test():
     while True:
         sleep(60*60*24)
     quote_ctx.close()
+=======
+    subtype_list = [SubType.QUOTE, SubType.ORDER_BOOK, SubType.TICKER, SubType.BROKER]
+    sub_codes = ['HK.00700', 'HK.999010']
+    print("* subscribe : {}\n".format(quote_ctx.subscribe(sub_codes, subtype_list)))
+>>>>>>> c6d8737232b7342604a2c3c8808fc22682a8b3f7
 
 
 if __name__ =="__main__":
