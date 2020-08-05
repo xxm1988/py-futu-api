@@ -507,7 +507,6 @@ from threading import RLock, Thread
 from futu.common.utils import *
 from futu.common.handler_context import HandlerContext
 from futu.quote.quote_query import InitConnect, TestCmd
-from futu.quote.quote_response_handler import AsyncHandler_InitConnect
 from futu.quote.quote_query import GlobalStateQuery
 from futu.quote.quote_query import KeepAlive, parse_head
 from futu.common.conn_mng import FutuConnMng
@@ -679,13 +678,6 @@ class OpenContextBase(object):
         with self._lock:
             if self._handler_ctx is not None:
                 return self._handler_ctx.set_handler(handler)
-        return RET_ERROR
-
-    def set_pre_handler(self, handler):
-        '''set pre handler'''
-        with self._lock:
-            if self._handler_ctx is not None:
-                return self._handler_ctx.set_pre_handler(handler)
         return RET_ERROR
 
     def _is_proc_run(self):
