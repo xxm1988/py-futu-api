@@ -12,6 +12,7 @@ import platform
 import time
 from datetime import datetime
 import pandas as pd
+import numpy as np
 
 class CalKline(object):
     """
@@ -19,6 +20,8 @@ class CalKline(object):
     """
     def __init__(self, stock_code, cal_date=None, k_type='3s'):
         self.stock_code  = stock_code.split('.')[1]
+        self.k_type = k_type       
+        self.k_line_table_name = "stock_kline_%s_%s" % (k_type, self.stock_code)
         if cal_date:
             self.cal_date = cal_date
         else:
@@ -62,51 +65,65 @@ class CalKline(object):
         return cu.fetchall()
 
     def create_kline_table(self):
-        sql_cmd_create = """create TABLE IF NOT EXISTS  stock_kline_%s (                          
-                            [f_date] DATE,
-                            [f_time] TIME, 
-                            [open_price] FLOAT, 
-                            [close_price] FLOAT, 
-                            [high_price] FLOAT, 
-                            [low_price] FLOAT, 
+        sql_cmd_create = """create TABLE IF NOT EXISTS  %s ( 
+                            [time] TIME, 
+                            [open] FLOAT, 
+                            [close] FLOAT, 
+                            [high] FLOAT, 
+                            [low] FLOAT, 
                             [volume] INT, 
                             [turnover] FLOAT,
-                            [direction] INT,  
-                            PRIMARY KEY([f_date], [f_time])) """ % self.stock_code
+                            [buy_volume] INT,  
+                            [sell_volume] INT, 
+                            [neutral_volume] INT, 
+                            PRIMARY KEY([time])) """ % self.k_line_table_name
         self.exe_sql(sql_cmd_create, db=self.sqlitedb_kline)
+
+    def delete_kline_data(self):
+        sql_cmd_delete = """ delete from stock_kline_%s where date(time)='%s' """ % (self.stock_code, self.cal_date)
+        self.exe_sql(sql_cmd_delete, db=self.sqlitedb_kline)
+
+    def get_timestamp(self, freq='3s'):
+        morning_df = pd.date_range(start='%s 09:30:00' % self.cal_date, end='%s 12:00:00' % self.cal_date, freq=freq, normalize=False)
+        afternoon_df = pd.date_range(start='%s 13:00:00' % self.cal_date, end='%s 16:00:00' % self.cal_date, freq=freq, normalize=False)
+        time_list = []
+        for line in morning_df.to_list() + afternoon_df.to_list():
+            time_list.append(str(line))
+        return time_list
+
 
     def calculate(self):
         query_sql =  """ select * from tick_data_%s 
                          where time>'%s 00:00:00' and time<'%s 23:59:59' 
                          order by time """ % (self.stock_code, self.cal_date, self.cal_date)
 
-        df = pd.read_sql(query_sql, self.sqlitedb_tick )
+        df = pd.read_sql(query_sql, self.sqlitedb_tick)
+        df = df.set_index(pd.DatetimeIndex(pd.to_datetime(df.time)))
 
-        # tick_data = self.exe_sql(query_sql, db='tick')
-        #
-        # last_datetime = None
-        #
-        # default_dict = {
-        #     "open_price": 0,
-        #     "close_price": 0,
-        #     "high_price": 0,
-        #     "low_price": 0,
-        #     "volume": 0,
-        #     "turnover": 0,
-        #     "direction": 0,  # 0 sell 1 buy
-        #     "buy_volume": 0,
-        #     "sell_volume": 0,
-        #     "buy_turnover": 0,
-        #     "sell_turnover": 0
-        # }
+        df_price_ohlc = df['price'].resample(self.k_type, label='right').ohlc()
+        df_volume_df = df['volume'].resample(self.k_type, label='right').sum()
+        df_turnover = df['turnover'].resample(self.k_type, label='right').sum()
 
-        #df = DataFrame(tick_data)
-        #df.columns = resoverall.keys()
+        df_buy_volume = df[df['ticker_direction']=='BUY']['volume'].resample(self.k_type, label='right').sum()
+        df_buy_volume.rename('buy_volume', inplace=True)
+       
+        df_sell_volume = df[df['ticker_direction']=='SELL']['volume'].resample(self.k_type, label='right').sum()
+        df_sell_volume.rename('sell_volume', inplace=True)
+        df_neutral_volume = df[df['ticker_direction']=='NEUTRAL']['volume'].resample(self.k_type, label='right').sum()
+        df_neutral_volume.rename('neutral_volume', inplace=True)
 
+        df_all = pd.merge(df_price_ohlc, df_volume_df, on=['time'])       
+        df_all = pd.merge(df_all, df_turnover, on=['time'])
+        df_all = pd.merge(df_all, df_buy_volume, on=['time'])
+        df_all = pd.merge(df_all, df_sell_volume, on=['time'])
+        df_all = pd.merge(df_all, df_neutral_volume, on=['time'])
+        print("save stock[%s] ktype [%s] line num [%s] to table [%s]" % (self.stock_code, self.k_type, len(df_all), self.k_line_table_name))     
+        df_all.to_sql(name=self.k_line_table_name, con=self.sqlitedb_kline, if_exists='append', index=True)
 
-        # for tick in tick_data:
-        #     f_date = tick.time.strftime('%Y-%m-d')
-        #     if (tick_time - last_datetime)
+def cal_all_stock_kline()       
 
 if __name__ == "__main__":
-    cal_obj = CalKline('00700', cal_date='2020-10-12')
+    cal_obj = CalKline('HK.00700', cal_date='2020-10-12', k_type='3s')
+    cal_obj.delete_kline_data()
+    cal_obj.calculate()
+    
