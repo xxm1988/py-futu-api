@@ -46,9 +46,11 @@ class GetAccountList:
         acc_list = [{
             'acc_id': record.accID,
             'trd_env': TrdEnv.to_string2(record.trdEnv),
-            'trdMarket_list': [ TrdMarket.to_string2(trdMkt) for trdMkt in record.trdMarketAuthList],
+            'trdMarket_list': [TrdMarket.to_string2(trdMkt) for trdMkt in record.trdMarketAuthList],
             'acc_type': TrdAccType.to_string2(record.accType) if record.HasField("accType") else TrdAccType.NONE,
-            'card_num': record.cardNum if record.HasField("cardNum") else "N/A"
+            'card_num': record.cardNum if record.HasField("cardNum") else "N/A",
+            'security_firm': SecurityFirm.to_string2(record.securityFirm) if record.HasField('securityFirm') else SecurityFirm.NONE,
+            'sim_acc_type': SimAccType.to_string2(record.simAccType) if record.HasField('simAccType') else SimAccType.NONE
         } for record in raw_acc_list]
 
         return RET_OK, "", acc_list
@@ -130,17 +132,26 @@ class AccInfoQuery:
         raw_funds = rsp_pb.s2c.funds
         accinfo_list = [{
             'power': raw_funds.power,
+            'max_power_short': raw_funds.maxPowerShort if raw_funds.HasField('maxPowerShort') else NoneDataValue,
+            'net_cash_power': raw_funds.netCashPower if raw_funds.HasField('netCashPower') else NoneDataValue,
             'total_assets': raw_funds.totalAssets,
             'cash': raw_funds.cash,
             'market_val': raw_funds.marketVal,
+            'long_mv': raw_funds.longMv if raw_funds.HasField('longMv') else NoneDataValue,
+            'short_mv': raw_funds.shortMv if raw_funds.HasField('shortMv') else NoneDataValue,
+            'pending_asset': raw_funds.pendingAsset if raw_funds.HasField('pendingAsset') else NoneDataValue,
+            'interest_charged_amount': raw_funds.debtCash if raw_funds.HasField('debtCash') else NoneDataValue,
             'frozen_cash': raw_funds.frozenCash,
-            'avl_withdrawal_cash': raw_funds.avlWithdrawalCash,
+            'avl_withdrawal_cash': raw_funds.avlWithdrawalCash if raw_funds.HasField('avlWithdrawalCash') else NoneDataValue,
+            'max_withdrawal': raw_funds.maxWithdrawal if raw_funds.HasField('maxWithdrawal') else NoneDataValue,
             'currency': Currency.to_string2(raw_funds.currency) if raw_funds.HasField('currency') else Currency.NONE,
             'available_funds': raw_funds.availableFunds if raw_funds.HasField('availableFunds') else NoneDataValue,
             'unrealized_pl': raw_funds.unrealizedPL if raw_funds.HasField('unrealizedPL') else NoneDataValue,
             'realized_pl': raw_funds.realizedPL if raw_funds.HasField('realizedPL') else NoneDataValue,
             'risk_level': CltRiskLevel.to_string2(raw_funds.riskLevel) if raw_funds.HasField('riskLevel') else CltRiskLevel.NONE,
+            'risk_status': CltRiskStatus.to_string2(raw_funds.riskStatus) if raw_funds.HasField('riskStatus') else CltRiskStatus.NONE,
             'initial_margin': raw_funds.initialMargin if raw_funds.HasField('initialMargin') else NoneDataValue,
+            'margin_call_margin': raw_funds.marginCallMargin if raw_funds.HasField('marginCallMargin') else NoneDataValue,
             'maintenance_margin': raw_funds.maintenanceMargin if raw_funds.HasField('maintenanceMargin') else NoneDataValue,
             'hk_cash': NoneDataValue,
             'hk_avl_withdrawal_cash': NoneDataValue,
@@ -267,7 +278,9 @@ class OrderListQuery:
             "dealt_qty": order.fillQty,
             "dealt_avg_price": order.fillAvgPrice,
             "last_err_msg": order.lastErrMsg,
-            "remark": order.remark if order.HasField("remark") else ""
+            "remark": order.remark if order.HasField("remark") else "",
+            "time_in_force": TimeInForce.to_string2(order.timeInForce),
+            "fill_outside_rth": order.fillOutsideRTH if order.HasField("fillOutsideRTH") else 'N/A'
         }
         return order_dict
 
@@ -289,7 +302,8 @@ class PlaceOrder:
 
     @classmethod
     def pack_req(cls, trd_side, order_type, price, qty,
-                 code, adjust_limit, trd_env, sec_mkt_str, acc_id, trd_mkt, conn_id, remark):
+                 code, adjust_limit, trd_env, sec_mkt_str, acc_id, trd_mkt, conn_id, remark,
+                 time_in_force, fill_outside_rth):
         """Convert from user request for place order to PLS request"""
         from futu.common.pb.Trd_PlaceOrder_pb2 import Request
         req = Request()
@@ -315,6 +329,13 @@ class PlaceOrder:
             proto_qot_mkt = Qot_Common_pb2.QotMarket_Unknown
         proto_trd_sec_mkt = QOT_MARKET_TO_TRD_SEC_MARKET_MAP.get(proto_qot_mkt, Trd_Common_pb2.TrdSecMarket_Unknown)
         req.c2s.secMarket = proto_trd_sec_mkt
+        ret, val = TimeInForce.to_number(time_in_force)
+        if not ret:
+            return RET_ERROR, val, None
+        else:
+            req.c2s.timeInForce = val
+
+        req.c2s.fillOutsideRTH = fill_outside_rth
 
         return pack_pb_req(req, ProtoId.Trd_PlaceOrder, conn_id, serial_no)
 
@@ -508,7 +529,9 @@ class HistoryOrderListQuery:
                       "dealt_qty": order.fillQty,
                       "dealt_avg_price": order.fillAvgPrice,
                       "last_err_msg": order.lastErrMsg,
-                      "remark": order.remark if order.HasField("remark") else ""
+                      "remark": order.remark if order.HasField("remark") else "",
+                      "time_in_force": TimeInForce.to_string2(order.timeInForce),
+                      "fill_outside_rth": order.fillOutsideRTH if order.HasField("fillOutsideRTH") else 'N/A'
                       } for order in raw_order_list]
         return RET_OK, "", order_list
 
@@ -572,7 +595,7 @@ class UpdateOrderPush:
 
         order_dict = OrderListQuery.parse_order(rsp_pb, rsp_pb.s2c.order)
         order_dict['trd_env'] = TrdEnv.to_string2(rsp_pb.s2c.header.trdEnv)
-        order_dict['trd_market'] = TrdMarket.to_string2(rsp_pb.s2c.header.trdEnv)
+        order_dict['trd_market'] = TrdMarket.to_string2(rsp_pb.s2c.header.trdMarket)
 
         return RET_OK, order_dict
 
@@ -641,7 +664,9 @@ class AccTradingInfoQuery:
             'max_cash_and_margin_buy': info.maxCashAndMarginBuy if info.HasField('maxCashAndMarginBuy') else NoneDataValue,
             'max_position_sell': info.maxPositionSell,
             'max_sell_short': info.maxSellShort if info.HasField('maxSellShort') else NoneDataValue,
-            'max_buy_back': info.maxBuyBack if info.HasField('maxBuyBack') else NoneDataValue
+            'max_buy_back': info.maxBuyBack if info.HasField('maxBuyBack') else NoneDataValue,
+            'long_required_im': info.longRequiredIM if info.HasField('longRequiredIM') else NoneDataValue,
+            'short_required_im': info.shortRequiredIM if info.HasField('shortRequiredIM') else NoneDataValue
         }]
 
         return RET_OK, "", data

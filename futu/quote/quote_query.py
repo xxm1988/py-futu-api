@@ -6,6 +6,7 @@
 from futu.common.utils import *
 from futu.common.pb import Common_pb2
 from futu.quote.quote_stockfilter_info import *
+from futu.quote.quote_get_warrant import *
 
 # 无数据时的值
 NoneDataType = 'N/A'
@@ -59,7 +60,7 @@ def merge_pb_cnipoexdata_winningnumdata(winningnumdata):
 # python_name, pb_name, is_required, conv_func
 pb_field_map_OptionBasicQotExData = [
     ('strike_price', 'strikePrice', True, None),
-    ('contract_size', 'contractSize', True, None),
+    ('contract_size', 'contractSizeFloat', True, None),
     ('open_interest', 'openInterest', True, None),
     ('implied_volatility', 'impliedVolatility', True, None),
     ('premium', 'premium', True, None),
@@ -74,6 +75,7 @@ pb_field_map_OptionBasicQotExData = [
     ('owner_lot_multiplier', 'ownerLotMultiplier', False, None),
     ('option_area_type', 'optionAreaType', False, OptionAreaType.to_string2),
     ('contract_multiplier', 'contractMultiplier', False, None),
+    ('index_option_type', 'indexOptionType', False, IndexOptionType.to_string2),
 ]
 
 pb_field_map_FutureBasicQotExData = [
@@ -480,6 +482,25 @@ class MarketSnapshotQuery:
             snapshot_tmp['bid_price'] = record.basic.bidPrice if record.basic.HasField('bidPrice') else 'N/A'
             snapshot_tmp['ask_vol'] = record.basic.askVol if record.basic.HasField('askVol') else 'N/A'
             snapshot_tmp['bid_vol'] = record.basic.bidVol if record.basic.HasField('bidVol') else 'N/A'
+
+            # 窝轮 统一对枚举类型，初始化
+            snapshot_tmp['wrt_type'] = WrtType.to_string2(
+                record.warrantExData.warrantType) if record.warrantExData.HasField('warrantType') else 'N/A'
+            #  界内界外，仅界内证支持该字段 type=double
+            snapshot_tmp["wrt_inline_price_status"] = PriceType.to_string2(
+                record.warrantExData.inLinePriceStatus) if record.warrantExData.HasField('inLinePriceStatus') else 'N/A'
+
+            # 期权 统一对枚举类型，初始化
+            snapshot_tmp['option_type'] = OptionType.to_string2(
+                record.optionExData.type) if record.optionExData.HasField('type') else 'N/A'
+            snapshot_tmp['index_option_type'] = IndexOptionType.to_string2(
+                record.optionExData.indexOptionType) if record.optionExData.HasField('indexOptionType') else 'N/A'
+            snapshot_tmp['option_area_type'] = OptionAreaType.to_string2(
+                record.optionExData.optionAreaType) if record.optionExData.HasField('optionAreaType') else 'N/A'
+
+            # 基金 统一对枚举类型，初始化
+            snapshot_tmp['trust_assetClass'] = AssetClass.to_string2(record.trustExData.assetClass) if record.trustExData.HasField('assetClass') else 'N/A'
+
             # 2019.02.25 增加一批数据
             if record.basic.HasField("enableMargin"):
                 # 是否可融资，如果为true，后两个字段才有意
@@ -516,7 +537,7 @@ class MarketSnapshotQuery:
             #  盘后成交额 type=double
             snapshot_tmp["after_turnover"] = record.basic.afterMarket.turnover   
             #  股票状态 type=str
-            snapshot_tmp["sec_status"] = SecurityStatus.to_string2(record.basic.secStatus)
+            snapshot_tmp["sec_status"] = SecurityStatus.to_string2(record.basic.secStatus) if record.basic.HasField('secStatus') else 'N/A'
             #  5分组收盘价 type=double
             snapshot_tmp["close_price_5min"] = record.basic.closePrice5Minute
 
@@ -559,8 +580,6 @@ class MarketSnapshotQuery:
             if SecurityType.to_string2(record.basic.type) == SecurityType.WARRANT:
                 snapshot_tmp['wrt_valid'] = True
                 snapshot_tmp['wrt_conversion_ratio'] = record.warrantExData.conversionRate
-                snapshot_tmp['wrt_type'] = WrtType.to_string2(
-                    record.warrantExData.warrantType)
                 snapshot_tmp['wrt_strike_price'] = record.warrantExData.strikePrice
                 snapshot_tmp['wrt_maturity_date'] = record.warrantExData.maturityTime
                 snapshot_tmp['wrt_end_trade'] = record.warrantExData.endTradeTime
@@ -589,21 +608,18 @@ class MarketSnapshotQuery:
                 #  上限价，仅界内证支持该字段 type=double
                 snapshot_tmp["wrt_upper_strike_price"] = record.warrantExData.upperStrikePrice
                 #  下限价，仅界内证支持该字段 type=double
-                snapshot_tmp["wrt_lowe_strike_price"] = record.warrantExData.lowerStrikePrice
-                #  界内界外，仅界内证支持该字段 type=double
-                snapshot_tmp["wrt_inline_price_status"] = PriceType.to_string2(
-                    record.warrantExData.inLinePriceStatus)
+                snapshot_tmp["wrt_lower_strike_price"] = record.warrantExData.lowerStrikePrice
                 snapshot_tmp["wrt_issuer_code"] = record.warrantExData.issuerCode
 
             snapshot_tmp['option_valid'] = False
             if SecurityType.to_string2(record.basic.type) == SecurityType.DRVT:
                 snapshot_tmp['option_valid'] = True
-                snapshot_tmp['option_type'] = OptionType.to_string2(record.optionExData.type)
+
                 snapshot_tmp['stock_owner'] = merge_qot_mkt_stock_str(
                     record.optionExData.owner.market, record.optionExData.owner.code)
                 snapshot_tmp['strike_time'] = record.optionExData.strikeTime
                 snapshot_tmp['option_strike_price'] = record.optionExData.strikePrice
-                snapshot_tmp['option_contract_size'] = record.optionExData.contractSize
+                snapshot_tmp['option_contract_size'] = record.optionExData.contractSizeFloat
                 snapshot_tmp['option_open_interest'] = record.optionExData.openInterest
                 snapshot_tmp['option_implied_volatility'] = record.optionExData.impliedVolatility
                 snapshot_tmp['option_premium'] = record.optionExData.premium
@@ -616,7 +632,6 @@ class MarketSnapshotQuery:
                 snapshot_tmp['option_expiry_date_distance'] = record.optionExData.expiryDateDistance if record.optionExData.HasField('expiryDateDistance') else 'N/A'
                 snapshot_tmp['option_contract_nominal_value'] = record.optionExData.contractNominalValue if record.optionExData.HasField('contractNominalValue') else 'N/A'
                 snapshot_tmp['option_owner_lot_multiplier'] = record.optionExData.ownerLotMultiplier if record.optionExData.HasField('ownerLotMultiplier') else 'N/A'
-                snapshot_tmp['option_area_type'] = OptionAreaType.to_string2(record.optionExData.optionAreaType) if record.optionExData.HasField('optionAreaType') else 'N/A'
                 snapshot_tmp['option_contract_multiplier'] = record.optionExData.contractMultiplier if record.optionExData.HasField('contractMultiplier') else 'N/A'
 
             snapshot_tmp['index_valid'] = False
@@ -647,6 +662,15 @@ class MarketSnapshotQuery:
                 snapshot_tmp['future_position_change'] = record.futureExData.positionChange
                 snapshot_tmp['future_main_contract'] = record.futureExData.isMainContract
                 snapshot_tmp['future_last_trade_time'] = record.futureExData.lastTradeTime
+
+            snapshot_tmp['trust_valid'] = False
+            if record.HasField('trustExData'):
+                snapshot_tmp['trust_valid'] = True
+                snapshot_tmp['trust_dividend_yield'] = record.trustExData.dividendYield
+                snapshot_tmp['trust_aum'] = record.trustExData.aum
+                snapshot_tmp['trust_outstanding_units'] = record.trustExData.outstandingUnits
+                snapshot_tmp['trust_netAssetValue'] = record.trustExData.netAssetValue
+                snapshot_tmp['trust_premium'] = record.trustExData.premium
 
             snapshot_list.append(snapshot_tmp)
 
@@ -858,7 +882,7 @@ class RequestHistoryKlineQuery:
 
     @classmethod
     def pack_req(cls, code, start_date, end_date, ktype, autype, fields,
-                 max_num, conn_id, next_req_key):
+                 max_num, conn_id, next_req_key, extended_time):
         ret, content = split_stock_str(code)
         if ret == RET_ERROR:
             error_str = content
@@ -892,6 +916,8 @@ class RequestHistoryKlineQuery:
         req.c2s.needKLFieldsFlag = KL_FIELD.kl_fields_to_flag_val(fields)
         if next_req_key is not None:
             req.c2s.nextReqKey = next_req_key
+        if extended_time:
+            req.c2s.extendedTime = True
 
         return pack_pb_req(req, ProtoId.Qot_RequestHistoryKL, conn_id)
 
@@ -959,6 +985,7 @@ class SubscriptionQuery:
                               conn_id,
                               is_first_push,
                               is_detailed_orderbook,
+                              extended_time,
                               reg_or_unreg_push,
                               unsub_all=False):
 
@@ -990,17 +1017,19 @@ class SubscriptionQuery:
             req.c2s.isFirstPush = is_first_push
             req.c2s.isRegOrUnRegPush = reg_or_unreg_push
             req.c2s.isSubOrderBookDetail = is_detailed_orderbook
+            req.c2s.extendedTime = extended_time
 
         return pack_pb_req(req, ProtoId.Qot_Sub, conn_id)
 
     @classmethod
-    def pack_subscribe_req(cls, code_list, subtype_list, conn_id, is_first_push, subscribe_push, is_detailed_orderbook):
+    def pack_subscribe_req(cls, code_list, subtype_list, conn_id, is_first_push, subscribe_push, is_detailed_orderbook, extended_time):
         return SubscriptionQuery.pack_sub_or_unsub_req(code_list,
                                                        subtype_list,
                                                        True,
                                                        conn_id,
                                                        is_first_push,
                                                        is_detailed_orderbook,
+                                                       extended_time,
                                                        subscribe_push)  # True
 
     @classmethod
@@ -1018,6 +1047,7 @@ class SubscriptionQuery:
                                                        subtype_list,
                                                        False,
                                                        conn_id,
+                                                       False,
                                                        False,
                                                        False,
                                                        False,
@@ -1124,17 +1154,17 @@ def parse_pb_BasicQot(pb):
         'turnover_rate': pb.turnoverRate,
         'amplitude': pb.amplitude,
         'suspension': pb.isSuspended,
-        'listing_date': "N/A" if pb.HasField('optionExData') else  pb.listTime,
+        'listing_date': "N/A" if pb.HasField('optionExData') else pb.listTime,
         'price_spread': pb.priceSpread,
-        'dark_status': DarkStatus.to_string2(pb.darkStatus),
+        'dark_status': DarkStatus.to_string2(pb.darkStatus) if pb.HasField('darkStatus') else 'N/A',
         'sec_status': SecurityStatus.to_string2(pb.secStatus) if pb.HasField(
-            'secStatus') else SecurityStatus.NONE,
+            'secStatus') else 'N/A',
     }
 
     if pb.HasField('optionExData'):
         set_item_from_pb(item, pb.optionExData, pb_field_map_OptionBasicQotExData)
     else:
-        set_item_none(item, pb_field_map_OptionBasicQotExData)
+        set_item_none(item, pb_field_map_OptionBasicQotExData) # 这里设置了 'N/A'
 
     if pb.HasField('futureExData'):
         set_item_from_pb(item, pb.futureExData, pb_field_map_FutureBasicQotExData)
@@ -1583,9 +1613,14 @@ class SysNotifyPush:
                         'trd_logined': rsp_pb.s2c.connectStatus.trdLogined}
         elif notify_type == SysNotifyType.QOT_RIGHT:
             if rsp_pb.s2c.HasField('qotRight'):
-                data = {'hk_qot_right': QotRight.to_string2(rsp_pb.s2c.qotRight.hkQotRight),
-                        'us_qot_right': QotRight.to_string2(rsp_pb.s2c.qotRight.usQotRight),
-                        'cn_qot_right': QotRight.to_string2(rsp_pb.s2c.qotRight.cnQotRight)}
+                qot_right = rsp_pb.s2c.qotRight
+                data = {'hk_qot_right': QotRight.to_string2(qot_right.hkQotRight),
+                        'hk_option_qot_right': QotRight.to_string2(qot_right.hkOptionQotRight) if qot_right.HasField('hkOptionQotRight') else 'N/A',
+                        'hk_future_qot_right': QotRight.to_string2(qot_right.hkFutureQotRight) if qot_right.HasField('hkFutureQotRight') else 'N/A',
+                        'us_qot_right': QotRight.to_string2(qot_right.usQotRight),
+                        'us_option_qot_right': QotRight.to_string2(qot_right.usOptionQotRight) if qot_right.HasField('usOptionQotRight') else 'N/A',
+                        'us_future_qot_right': QotRight.to_string2(qot_right.usFutureQotRight) if qot_right.HasField('usFutureQotRight') else 'N/A',
+                        'cn_qot_right': QotRight.to_string2(qot_right.cnQotRight)}
         elif notify_type == SysNotifyType.API_LEVEL:
             if rsp_pb.s2c.HasField('apiLevel'):
                 data = {'api_level': rsp_pb.s2c.apiLevel.apiLevel}
@@ -2000,7 +2035,7 @@ class OrderDetail:
 
 class QuoteWarrant:
     """
-    拉取涡轮
+    拉取窝轮
     """
 
     def __init__(self):
@@ -2188,6 +2223,8 @@ class GetUserInfo:
         update_type = rsp_pb.s2c.updateType if rsp_pb.s2c.HasField(
             'updateType') else "N/A"
         web_key = rsp_pb.s2c.webKey if rsp_pb.s2c.HasField('webKey') else "N/A"
+        sub_quota = rsp_pb.s2c.subQuota if rsp_pb.s2c.HasField('subQuota') else "N/A"
+        history_kl_quota = rsp_pb.s2c.historyKLQuota if rsp_pb.s2c.HasField('historyKLQuota') else "N/A"
         data = {
             "nick_name": nick_name,
             "avatar_url": avatar_url,
@@ -2200,7 +2237,9 @@ class GetUserInfo:
             "is_need_agree_disclaimer": is_need_agree_disclaimer,
             "user_id": user_id,
             "update_type": UpdateType.to_string2(update_type),
-            "web_key": web_key
+            "web_key": web_key,
+            "sub_quota": sub_quota,
+            "history_kl_quota": history_kl_quota,
         }
         return RET_OK, "", data
 
@@ -3030,4 +3069,58 @@ class GetUserSecurityGroupQuery:
             data["group_type"] = UserSecurityGroupType.to_string2(item.groupType)
             ret_list.append(data)
 
+        return RET_OK, "", ret_list
+
+class GetMarketStateQuery:
+    """
+    Query GetMarketState.
+    """
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def pack_req(cls, code_list, conn_id):
+        """check code_list 股票列表"""
+        stock_tuple_list = []
+        failure_tuple_list = []
+        for stock_str in code_list:
+            ret_code, content = split_stock_str(stock_str)
+            if ret_code != RET_OK:
+                error_str = content
+                failure_tuple_list.append((ret_code, error_str))
+                continue
+            market_code, stock_code = content
+            stock_tuple_list.append((market_code, stock_code))
+        if len(failure_tuple_list) > 0:
+            error_str = '\n'.join([x[1] for x in failure_tuple_list])
+            return RET_ERROR, error_str, None
+
+        # 开始组包
+        from futu.common.pb.Qot_GetMarketState_pb2 import Request
+        req = Request()
+        for market_code, stock_code in stock_tuple_list:
+            stock_inst = req.c2s.securityList.add()
+            stock_inst.market = market_code
+            stock_inst.code = stock_code
+
+        return pack_pb_req(req, ProtoId.Qot_GetMarketState, conn_id)
+
+    @classmethod
+    def unpack(cls, rsp_pb):
+        if rsp_pb.retType != RET_OK:
+            return RET_ERROR, rsp_pb.retMsg, None
+
+        ret_list = list()
+        #  市场状态信息 type = Qot_GetMarketState.MarketInfo
+        market_info_list = rsp_pb.s2c.marketInfoList
+        for item in market_info_list:
+            data = {}
+            ret_list.append(data)
+            #  股票代码 type = code
+            data["code"] = merge_qot_mkt_stock_str(item.security.market, item.security.code)
+            #  股票名称 type = string
+            data["stock_name"] = item.name
+            #  Qot_Common.QotMarketState,市场状态 type = int32
+            data["market_state"] = MarketState.to_string2(item.marketState)
         return RET_OK, "", ret_list

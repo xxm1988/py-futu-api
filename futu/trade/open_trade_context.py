@@ -8,11 +8,12 @@ from futu.common.err import *
 class OpenTradeContextBase(OpenContextBase):
     """Class for set context of HK stock trade"""
 
-    def __init__(self, trd_mkt, host="127.0.0.1", port=11111, is_encrypt=None):
+    def __init__(self, trd_mkt, host="127.0.0.1", port=11111, is_encrypt=None, security_firm=SecurityFirm.FUTUSECURITIES):
         self.__trd_mkt = trd_mkt
         self._ctx_unlock = None
         self.__last_acc_list = []
         self.__is_acc_sub_push = False
+        self.__security_firm = security_firm
 
         # if host != "127.0.0.1" and host != "localhost" and is_encrypt is None:
         #     '''非本地连接必须加密，以免远程攻击'''
@@ -69,13 +70,16 @@ class OpenTradeContextBase(OpenContextBase):
         for record in acc_list:
             trdMkt_list = record["trdMarket_list"]
             if self.__trd_mkt in trdMkt_list:
-                self.__last_acc_list.append({
-                    "trd_env": record["trd_env"],
-                    "acc_id": record["acc_id"],
-                    "acc_type": record["acc_type"],
-                    "card_num": record["card_num"]})
+                if record['trd_env'] == TrdEnv.SIMULATE or record['security_firm'] == NoneDataValue or record['security_firm'] == self.__security_firm:
+                    self.__last_acc_list.append({
+                        "trd_env": record["trd_env"],
+                        "acc_id": record["acc_id"],
+                        "acc_type": record["acc_type"],
+                        "card_num": record["card_num"],
+                        "security_firm": record["security_firm"],
+                        "sim_acc_type": record["sim_acc_type"]})
 
-        col_list = ["acc_id", "trd_env", "acc_type", "card_num"]
+        col_list = ["acc_id", "trd_env", "acc_type", "card_num", "security_firm", "sim_acc_type"]
 
         acc_table = pd.DataFrame(copy(self.__last_acc_list), columns=col_list)
 
@@ -212,14 +216,15 @@ class OpenTradeContextBase(OpenContextBase):
         if ret != RET_OK:
             return ret, msg, None
         acc_table = msg
-        env_list = []
-        env_list.append(trd_env)
+        env_list = [trd_env]
         acc_table = acc_table[acc_table['trd_env'].isin(env_list)]
         acc_table = acc_table.reset_index(drop=True)
 
         total_acc_num = acc_table.shape[0]
-        msg = ""
-        if acc_index >= total_acc_num:
+        if total_acc_num == 0:
+            msg = Err.NoAccForSecurityFirm.text
+            return RET_ERROR, msg, acc_index
+        elif acc_index >= total_acc_num:
             msg = ERROR_STR_PREFIX + "the index {0} is out of the total amount {1} ".format(acc_index, total_acc_num)
             return RET_ERROR, msg, acc_index
         return RET_OK, "", acc_table['acc_id'][acc_index]
@@ -279,9 +284,11 @@ class OpenTradeContextBase(OpenContextBase):
             return RET_ERROR, msg
 
         col_list = [
-            'power', 'total_assets', 'cash', 'market_val', 'frozen_cash', 'avl_withdrawal_cash', 'currency',
-            'available_funds', 'unrealized_pl', 'realized_pl', 'risk_level', 'initial_margin', 'maintenance_margin',
-            'hk_cash', 'hk_avl_withdrawal_cash', 'us_cash', 'us_avl_withdrawal_cash'
+            'power', 'max_power_short', 'net_cash_power', 'total_assets', 'cash', 'market_val', 'long_mv', 'short_mv',
+            'pending_asset', 'interest_charged_amount', 'frozen_cash', 'avl_withdrawal_cash', 'max_withdrawal', 'currency',
+            'available_funds', 'unrealized_pl', 'realized_pl', 'risk_level', 'risk_status', 'initial_margin',
+            'margin_call_margin', 'maintenance_margin', 'hk_cash', 'hk_avl_withdrawal_cash', 'us_cash',
+            'us_avl_withdrawal_cash'
         ]
         accinfo_frame_table = pd.DataFrame(accinfo_list, columns=col_list)
 
@@ -377,7 +384,9 @@ class OpenTradeContextBase(OpenContextBase):
         col_list = [
             "code", "stock_name", "trd_side", "order_type", "order_status",
             "order_id", "qty", "price", "create_time", "updated_time",
-            "dealt_qty", "dealt_avg_price", "last_err_msg", "remark"
+            "dealt_qty", "dealt_avg_price", "last_err_msg", "remark",
+            "time_in_force", "fill_outside_rth"
+
         ]
         order_list = ret_data
         order_list_table = pd.DataFrame(order_list, columns=col_list)
@@ -436,7 +445,8 @@ class OpenTradeContextBase(OpenContextBase):
         return RET_OK, order_list
 
     def place_order(self, price, qty, code, trd_side, order_type=OrderType.NORMAL,
-                    adjust_limit=0, trd_env=TrdEnv.REAL, acc_id=0, acc_index=0, remark=None):
+                    adjust_limit=0, trd_env=TrdEnv.REAL, acc_id=0, acc_index=0, remark=None,
+                    time_in_force=TimeInForce.DAY, fill_outside_rth=False):
         """
         place order
         use  set_handle(HKTradeOrderHandlerBase) to recv order push !
@@ -464,6 +474,8 @@ class OpenTradeContextBase(OpenContextBase):
             else:
                 return RET_ERROR, make_wrong_type_msg('remark', 'str')
 
+        fill_outside_rth = True if fill_outside_rth else False
+
         market_str, stock_code = content
 
         query_processor = self._get_sync_query_processor(
@@ -482,7 +494,9 @@ class OpenTradeContextBase(OpenContextBase):
             'trd_env': trd_env,
             'acc_id': acc_id,
             'conn_id': self.get_sync_conn_id(),
-            'remark': remark
+            'remark': remark,
+            'time_in_force': time_in_force,
+            'fill_outside_rth': fill_outside_rth
         }
 
         ret_code, msg, order_id = query_processor(**kargs)
@@ -504,7 +518,8 @@ class OpenTradeContextBase(OpenContextBase):
         col_list = [
             "code", "stock_name", "trd_side", "order_type", "order_status",
             "order_id", "qty", "price", "create_time", "updated_time",
-            "dealt_qty", "dealt_avg_price", "last_err_msg", "remark"
+            "dealt_qty", "dealt_avg_price", "last_err_msg", "remark",
+            "time_in_force", "fill_outside_rth"
         ]
         order_list = [order_item]
         order_table = pd.DataFrame(order_list, columns=col_list)
@@ -664,7 +679,8 @@ class OpenTradeContextBase(OpenContextBase):
         col_list = [
             "code", "stock_name", "trd_side", "order_type", "order_status",
             "order_id", "qty", "price", "create_time", "updated_time",
-            "dealt_qty", "dealt_avg_price", "last_err_msg", "remark"
+            "dealt_qty", "dealt_avg_price", "last_err_msg", "remark",
+            "time_in_force", "fill_outside_rth"
         ]
         order_list_table = pd.DataFrame(order_list, columns=col_list)
 
@@ -775,27 +791,28 @@ class OpenTradeContextBase(OpenContextBase):
         if ret_code != RET_OK:
             return RET_ERROR, msg
 
-        col_list = ['max_cash_buy', 'max_cash_and_margin_buy', 'max_position_sell', 'max_sell_short', 'max_buy_back']
+        col_list = ['max_cash_buy', 'max_cash_and_margin_buy', 'max_position_sell', 'max_sell_short', 'max_buy_back',
+                    'long_required_im', 'short_required_im']
         acctradinginfo_table = pd.DataFrame(data, columns=col_list)
         return RET_OK, acctradinginfo_table
 
 
 # 港股交易接口
 class OpenHKTradeContext(OpenTradeContextBase):
-    def __init__(self, host="127.0.0.1", port=11111, is_encrypt=None):
-        super(OpenHKTradeContext, self).__init__(TrdMarket.HK, host, port, is_encrypt=is_encrypt)
+    def __init__(self, host="127.0.0.1", port=11111, is_encrypt=None, security_firm=SecurityFirm.FUTUSECURITIES):
+        super(OpenHKTradeContext, self).__init__(TrdMarket.HK, host, port, is_encrypt=is_encrypt, security_firm=security_firm)
 
 
 # 美股交易接口
 class OpenUSTradeContext(OpenTradeContextBase):
-    def __init__(self, host="127.0.0.1", port=11111, is_encrypt=None):
-        super(OpenUSTradeContext, self).__init__(TrdMarket.US, host, port, is_encrypt=is_encrypt)
+    def __init__(self, host="127.0.0.1", port=11111, is_encrypt=None, security_firm=SecurityFirm.FUTUSECURITIES):
+        super(OpenUSTradeContext, self).__init__(TrdMarket.US, host, port, is_encrypt=is_encrypt, security_firm=security_firm)
 
 
 # A股通交易接口
 class OpenHKCCTradeContext(OpenTradeContextBase):
-    def __init__(self, host="127.0.0.1", port=11111, is_encrypt=None):
-        super().__init__(TrdMarket.HKCC, host, port, is_encrypt=is_encrypt)
+    def __init__(self, host="127.0.0.1", port=11111, is_encrypt=None, security_firm=SecurityFirm.FUTUSECURITIES):
+        super().__init__(TrdMarket.HKCC, host, port, is_encrypt=is_encrypt, security_firm=security_firm)
 
     def change_orde(self, *args, **kwargs):
         """不支持此接口"""
@@ -804,11 +821,11 @@ class OpenHKCCTradeContext(OpenTradeContextBase):
 
 # A股交易接口
 class OpenCNTradeContext(OpenTradeContextBase):
-    def __init__(self, host="127.0.0.1", port=11111, is_encrypt=None):
-        super(OpenCNTradeContext, self).__init__(TrdMarket.CN, host, port, is_encrypt=is_encrypt)
+    def __init__(self, host="127.0.0.1", port=11111, is_encrypt=None, security_firm=SecurityFirm.FUTUSECURITIES):
+        super(OpenCNTradeContext, self).__init__(TrdMarket.CN, host, port, is_encrypt=is_encrypt, security_firm=security_firm)
 
 
 # 期货交易接口
 class OpenFutureTradeContext(OpenTradeContextBase):
-    def __init__(self, host="127.0.0.1", port=11111, is_encrypt=None):
-        super(OpenFutureTradeContext, self).__init__(TrdMarket.FUTURES, host, port, is_encrypt=is_encrypt)
+    def __init__(self, host="127.0.0.1", port=11111, is_encrypt=None, security_firm=SecurityFirm.FUTUSECURITIES):
+        super(OpenFutureTradeContext, self).__init__(TrdMarket.FUTURES, host, port, is_encrypt=is_encrypt, security_firm=security_firm)
