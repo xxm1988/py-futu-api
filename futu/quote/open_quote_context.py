@@ -10,17 +10,19 @@ import pandas as pd
 from futu.common.open_context_base import OpenContextBase, ContextStatus
 from futu.quote.quote_query import *
 from futu.quote.quote_stockfilter_info import *
+from futu.quote.quote_get_warrant import *
 
 class SubRecord:
     def __init__(self):
-        self.subMap = {}  # (subkey, is_orderbook_detail) => code set
+        self.subMap = {}  # (subkey, is_orderbook_detail, extended_time) => code set
 
-    def sub(self, code_list, subtype_list, is_orderbook_detail):
+    def sub(self, code_list, subtype_list, is_orderbook_detail, extended_time):
         not_is_orderbook_detail = not is_orderbook_detail
+        not_extended_time = not extended_time
         for subtype in subtype_list:
-            old_subkey = (subtype, not_is_orderbook_detail)
+            old_subkey = (subtype, not_is_orderbook_detail, not_extended_time)
             old_code_set = self.subMap.get(old_subkey, set())
-            new_subkey = (subtype, is_orderbook_detail)
+            new_subkey = (subtype, is_orderbook_detail, extended_time)
             new_code_set = self.subMap.get(new_subkey, set())
             for code in code_list:
                 if code in old_code_set:
@@ -50,24 +52,33 @@ class SubRecord:
     def get_sub_list(self):
         """
 
-        :return: [(code_list, subtype_list, is_orderbook_detail)]
+        :return: [(code_list, subtype_list, is_orderbook_detail, extended_time)]
         """
-        sublist_orderbook_true = []
-        sublist_orderbook_false = []
+        other_sub_list = []
+        sublist_detail_true = []
+        sublist_extend_true = []
+        sublist_extend_detail_true = []
         for subkey, code_set in self.subMap.items():
-            if subkey[1]:
-                sublist_orderbook_true.append((subkey, code_set))
+            if subkey[1] and subkey[2]:
+                sublist_extend_detail_true.append((subkey, code_set))
+            elif subkey[1]:
+                sublist_detail_true.append((subkey, code_set))
+            elif subkey[2]:
+                sublist_extend_true.append((subkey, code_set))
             else:
-                sublist_orderbook_false.append((subkey, code_set))
-        result = self._merge_sub_list(sublist_orderbook_true)
-        result.extend(self._merge_sub_list(sublist_orderbook_false))
+                other_sub_list.append((subkey, code_set))
+
+        result = self._merge_sub_list(other_sub_list)
+        result.extend(self._merge_sub_list(sublist_detail_true))
+        result.extend(self._merge_sub_list(sublist_extend_true))
+        result.extend(self._merge_sub_list(sublist_extend_detail_true))
         return result
 
     def _merge_sub_list(self, orig_sub_list):
         """
         将原始的订阅列表合并为适合调用subscribe函数的参数的形式，并尽量合并code列表
         :param orig_sub_list: [(subkey, code_set)]
-        :return: [(code_list, subtype_list, is_orderbook_detail)]
+        :return: [(code_list, subtype_list, is_orderbook_detail, extended_time)]
         """
         if len(orig_sub_list) <= 1:
             return self._conv_sub_list(orig_sub_list)
@@ -83,14 +94,15 @@ class SubRecord:
             code_list = list(first_code_set)
             subtype_list = [item[0][0] for item in orig_sub_list]
             is_orderbook_detail = orig_sub_list[0][0][1]
-            return [(code_list, subtype_list, is_orderbook_detail)]
+            extended_time = orig_sub_list[0][0][2]
+            return [(code_list, subtype_list, is_orderbook_detail, extended_time)]
         else:
             return self._conv_sub_list(orig_sub_list)
 
     def _conv_sub_list(self, orig_sub_list):
         sub_list = []
         for subkey, code_set in orig_sub_list:
-            sub_list.append((list(code_set), [subkey[0]], subkey[1]))
+            sub_list.append((list(code_set), [subkey[0]], subkey[1], subkey[2]))
         return sub_list
 
 
@@ -128,11 +140,11 @@ class OpenQuoteContext(OpenContextBase):
 
         ret_code = RET_OK
         ret_msg = ''
-        for code_list, subtype_list, is_detailed_orderbook in sub_list:
+        for code_list, subtype_list, is_detailed_orderbook, extended_time in sub_list:
             ret_code, ret_msg = self._reconnect_subscribe(
-                code_list, subtype_list, is_detailed_orderbook)
-            logger.debug("reconnect subscribe code_count={} ret_code={} ret_msg={} subtype_list={} code_list={} is_detailed_orderbook={}".format(
-                len(code_list), ret_code, ret_msg, subtype_list, code_list, is_detailed_orderbook))
+                code_list, subtype_list, is_detailed_orderbook, extended_time)
+            logger.debug("reconnect subscribe code_count={} ret_code={} ret_msg={} subtype_list={} code_list={} is_detailed_orderbook={} extended_time={}".format(
+                len(code_list), ret_code, ret_msg, subtype_list, code_list, is_detailed_orderbook, extended_time))
             if ret_code != RET_OK:
                 break
 
@@ -241,7 +253,7 @@ class OpenQuoteContext(OpenContextBase):
             name                str            名字
             lot_size            int            每手数量
             stock_type          str            股票类型，参见SecurityType
-            stock_child_type    str            涡轮子类型，参见WrtType
+            stock_child_type    str            窝轮子类型，参见WrtType
             stock_owner         str            所属正股的代码
             option_type         str            期权类型，Qot_Common.OptionType
             strike_time         str            行权日
@@ -314,7 +326,8 @@ class OpenQuoteContext(OpenContextBase):
                               autype=AuType.QFQ,
                               fields=[KL_FIELD.ALL],
                               max_count=1000,
-                              page_req_key=None):
+                              page_req_key=None,
+                              extended_time=False):
         """
         拉取历史k线，不需要先下载历史数据。
 
@@ -410,7 +423,8 @@ class OpenQuoteContext(OpenContextBase):
                 "fields": copy(req_fields),
                 "max_num": max_kl_num,
                 "conn_id": self.get_sync_conn_id(),
-                "next_req_key": page_req_key
+                "next_req_key": page_req_key,
+                "extended_time": extended_time
             }
             query_processor = self._get_sync_query_processor(RequestHistoryKlineQuery.pack_req,
                                                              RequestHistoryKlineQuery.unpack_rsp)
@@ -485,8 +499,8 @@ class OpenQuoteContext(OpenContextBase):
                 dividend_ratio_ttm         float          股息率TTM（该字段为百分比字段，默认不展示%）
                 dividend_lfy               float          股息LFY，上一年度派息
                 dividend_lfy_ratio         float          股息率LFY（该字段为百分比字段，默认不展示
-                stock_owner                str            涡轮所属正股的代码或期权的标的股代码
-                wrt_valid                  bool           是否是窝轮（为true时以下涡轮相关的字段才有合法数据）
+                stock_owner                str            窝轮所属正股的代码或期权的标的股代码
+                wrt_valid                  bool           是否是窝轮（为true时以下窝轮相关的字段才有合法数据）
                 wrt_conversion_ratio       float          换股比率（该字段为比例字段，默认不展示%）
                 wrt_type                   str            窝轮类型，参见WrtType
                 wrt_strike_price           float          行使价格
@@ -549,6 +563,7 @@ class OpenQuoteContext(OpenContextBase):
                 option_owner_lot_multiplier    float      相等正股手数，指数期权无该字段
                 option_area_type           str            期权地区类型，见 OptionAreaType_
                 option_contract_multiplier float          合约乘数，指数期权特有字段
+                index_option_type          str            指数期权类型，见 IndexOptionType
                 index_raise_count          int            指数类型上涨支数
                 index_fall_count           int            指数类型下跌支数
                 index_requal_count         int            指数类型平盘支数
@@ -564,6 +579,13 @@ class OpenQuoteContext(OpenContextBase):
                 future_position_change     float          日增仓
                 future_main_contract       bool           是否主连合约
                 future_last_trade_time     string         只有非主连期货合约才有该字段
+                trust_valid                bool           是否基金
+                trust_dividend_yield       float          股息率
+                trust_aum                  float          资产规模
+                trust_outstanding_units    int            总发行量
+                trust_netAssetValue        float          单位净值
+                trust_premium              float          溢价
+                trust_assetClass           string         资产类别
                 =======================   =============   ==============================================================================
         """
         code_list = unique_and_normalize_list(code_list)
@@ -618,7 +640,7 @@ class OpenQuoteContext(OpenContextBase):
                         'wrt_price_recovery_ratio',
                         'wrt_score',
                         'wrt_upper_strike_price',
-                        'wrt_lowe_strike_price',
+                        'wrt_lower_strike_price',
                         'wrt_inline_price_status',
                         'wrt_issuer_code'
                         ]
@@ -639,7 +661,8 @@ class OpenQuoteContext(OpenContextBase):
                            'option_contract_nominal_value',
                            'option_owner_lot_multiplier',
                            'option_area_type',
-                           'option_contract_multiplier'
+                           'option_contract_multiplier',
+                           'index_option_type'
                            ]
 
         index_col_list = ['index_raise_count',
@@ -658,6 +681,14 @@ class OpenQuoteContext(OpenContextBase):
                            'future_main_contract',
                            'future_last_trade_time',
                          ]
+
+        trust_col_list = ['trust_dividend_yield',
+                          'trust_aum',
+                          'trust_outstanding_units',
+                          'trust_netAssetValue',
+                          'trust_premium',
+                          'trust_assetClass',
+                        ]
 
         col_list = [
             'code',
@@ -714,6 +745,8 @@ class OpenQuoteContext(OpenContextBase):
         col_dict.update((key, 1) for key in plate_col_list)
         col_dict['future_valid'] = 1
         col_dict.update((key, 1) for key in future_col_list)
+        col_dict['trust_valid'] = 1
+        col_dict.update((key, 1) for key in trust_col_list)
 
         col_dict.update((row[0], 1) for row in pb_field_map_PreAfterMarketData_pre)
         col_dict.update((row[0], 1) for row in pb_field_map_PreAfterMarketData_after)
@@ -974,7 +1007,7 @@ class OpenQuoteContext(OpenContextBase):
 
         return RET_OK, "", code_list, subtype_list
 
-    def subscribe(self, code_list, subtype_list, is_first_push=True, subscribe_push=True, is_detailed_orderbook=False):
+    def subscribe(self, code_list, subtype_list, is_first_push=True, subscribe_push=True, is_detailed_orderbook=False, extended_time=False):
         """
         订阅注册需要的实时信息，指定股票和订阅的数据类型即可
 
@@ -985,6 +1018,7 @@ class OpenQuoteContext(OpenContextBase):
         :param is_first_push: 订阅成功后是否马上推送一次数据
         :param subscribe_push: 订阅后推送
         :param is_detailed_orderbook 是否订阅详细的摆盘订单明细，仅用于 SF 行情权限下订阅 ORDER_BOOK 类型
+        :param extended_time - 是否允许美股盘前盘后数据（仅用于订阅美股实时K线、实时分时、实时逐笔），False不允许，True允许
         :return: (ret, err_message)
 
                 ret == RET_OK err_message为None
@@ -999,9 +1033,9 @@ class OpenQuoteContext(OpenContextBase):
         print(quote_ctx.subscribe(['HK.00700'], [SubType.QUOTE)])
         quote_ctx.close()
         """
-        return self._subscribe_impl(code_list, subtype_list, is_first_push, subscribe_push, is_detailed_orderbook)
+        return self._subscribe_impl(code_list, subtype_list, is_first_push, subscribe_push, is_detailed_orderbook, extended_time)
 
-    def _subscribe_impl(self, code_list, subtype_list, is_first_push, subscribe_push=True, is_detailed_orderbook=False):
+    def _subscribe_impl(self, code_list, subtype_list, is_first_push, subscribe_push=True, is_detailed_orderbook=False, extended_time=False):
 
         ret, msg, code_list, subtype_list = self._check_subscribe_param(
             code_list, subtype_list)
@@ -1025,7 +1059,8 @@ class OpenQuoteContext(OpenContextBase):
             'conn_id': self.get_sync_conn_id(),
             'is_first_push': is_first_push,
             'subscribe_push': subscribe_push,
-            'is_detailed_orderbook': is_detailed_orderbook
+            'is_detailed_orderbook': is_detailed_orderbook,
+            'extended_time': extended_time
         }
         ret_code, msg, _ = query_processor(**kargs)
 
@@ -1033,7 +1068,7 @@ class OpenQuoteContext(OpenContextBase):
             return RET_ERROR, msg
 
         with self._lock:
-            self._sub_record.sub(code_list, subtype_list, is_detailed_orderbook)
+            self._sub_record.sub(code_list, subtype_list, is_detailed_orderbook, extended_time)
         #
         # ret_code, msg, push_req_str = SubscriptionQuery.pack_push_req(
         #     code_list, subtype_list, self.get_async_conn_id(), is_first_push)
@@ -1047,7 +1082,7 @@ class OpenQuoteContext(OpenContextBase):
 
         return RET_OK, None
 
-    def _reconnect_subscribe(self, code_list, subtype_list, is_detailed_orderbook):
+    def _reconnect_subscribe(self, code_list, subtype_list, is_detailed_orderbook, extended_time):
 
         # 将k线定阅和其它定阅区分开来
         kline_sub_list = []
@@ -1084,7 +1119,7 @@ class OpenQuoteContext(OpenContextBase):
                 start_idx += sub_count
 
                 ret_code, ret_data = self._subscribe_impl(
-                    sub_codes, sub_list, True, True, is_detailed_orderbook)
+                    sub_codes, sub_list, True, True, is_detailed_orderbook, extended_time)
                 if ret_code != RET_OK:
                     break
             if ret_code != RET_OK:
@@ -1264,6 +1299,7 @@ class OpenQuoteContext(OpenContextBase):
                 last_settle_price       float          昨结，期货特有字段
                 position                float          持仓量，期货特有字段
                 position_change         float          日增仓，期货特有字段
+                index_option_type       str            指数期权的类型，仅在指数期权有效
                 =====================   ===========   ==============================================================
         """
         code_list = unique_and_normalize_list(code_list)
@@ -1293,7 +1329,7 @@ class OpenQuoteContext(OpenContextBase):
             'premium', 'delta', 'gamma', 'vega', 'theta', 'rho',
             'net_open_interest', 'expiry_date_distance', 'contract_nominal_value',
             'owner_lot_multiplier', 'option_area_type', 'contract_multiplier',
-            'last_settle_price','position','position_change'
+            'last_settle_price', 'position', 'position_change', 'index_option_type'
         ]
 
         col_list.extend(row[0] for row in pb_field_map_PreAfterMarketData_pre)
@@ -1469,7 +1505,7 @@ class OpenQuoteContext(OpenContextBase):
         """
         获取证券的关联数据
         :param code: 证券id，str，例如HK.00700
-        :param reference_type: 要获得的相关数据，参见SecurityReferenceType。例如WARRANT，表示获取正股相关的涡轮
+        :param reference_type: 要获得的相关数据，参见SecurityReferenceType。例如WARRANT，表示获取正股相关的窝轮
         :return: (ret, data)
 
                 ret == RET_OK 返回pd dataframe数据，数据列格式如下
@@ -1483,8 +1519,8 @@ class OpenQuoteContext(OpenContextBase):
                 stock_type                  str           证券类型，参见SecurityType
                 stock_name                  str           证券名字
                 list_time                   str           上市时间（美股默认是美东时间，港股A股默认是北京时间）
-                wrt_valid                   bool          是否是涡轮，如果为True，下面wrt开头的字段有效
-                wrt_type                    str           涡轮类型，参见WrtType
+                wrt_valid                   bool          是否是窝轮，如果为True，下面wrt开头的字段有效
+                wrt_type                    str           窝轮类型，参见WrtType
                 wrt_code                    str           所属正股
                 future_valid                bool          是否是期货，如果为True，下面future开头的字段有效
                 future_main_contract        bool          是否主连合约（期货特有字段）
@@ -1818,10 +1854,13 @@ class OpenQuoteContext(OpenContextBase):
         :param stock_owner:所属正股
         :param req:futu.quote.quote_get_warrant.Request
         """
-        from futu.quote.quote_get_warrant import Request
+
 
         if (req is None) or (not isinstance(req, Request)):
             req = Request()
+
+        if stock_owner is Market.HK:
+            stock_owner = ''
 
         if stock_owner is not None:
             req.stock_owner = stock_owner
@@ -2532,3 +2571,54 @@ class OpenQuoteContext(OpenContextBase):
             return RET_OK, ret_frame
         else:
             return RET_ERROR, "empty data"
+
+    def get_market_state(self, code_list):
+        """
+         获取股票对应市场的市场状态
+        :param code_list 股票列表
+        :return: (ret, data)
+        ret != RET_OK 返回错误字符串
+        ret == RET_OK data为DataFrame类型，字段如下:
+        =========================   ==================   ================================
+        参数                         类型                 说明
+        =========================   ==================   ================================
+        code                         str                  股票代码
+        stock_name                   str                  股票名称
+        market_state                 MarketState          市场状态
+        =========================   ==================   ================================
+        """
+        if is_str(code_list):
+            code_list = code_list.split(',')
+        elif isinstance(code_list, list) and len(code_list) > 0:
+            pass
+        else:
+            return RET_ERROR, "code list must be like ['HK.00001', 'HK.00700'] or 'HK.00001,HK.00700'"
+        code_list = unique_and_normalize_list(code_list)
+        for code in code_list:
+            if code is None or is_str(code) is False:
+                error_str = ERROR_STR_PREFIX + "the type of param in code_list is wrong"
+                return RET_ERROR, error_str
+
+        query_processor = self._get_sync_query_processor(
+            GetMarketStateQuery.pack_req,
+            GetMarketStateQuery.unpack,
+        )
+
+        kargs = {
+            "code_list": code_list,
+            "conn_id": self.get_sync_conn_id()
+        }
+        ret_code, msg, ret = query_processor(**kargs)
+        if ret_code == RET_ERROR:
+            return ret_code, msg
+        if isinstance(ret, list):
+            col_list = [
+                'code',
+                'stock_name',
+                'market_state'
+            ]
+            ret_frame = pd.DataFrame(ret, columns=col_list)
+            return RET_OK, ret_frame
+        else:
+            return RET_ERROR, "empty data"
+

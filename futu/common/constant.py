@@ -68,9 +68,6 @@ class ProtoId(object):
     Qot_UpdatePriceReminder = 3019 #到价提醒通知
 
     # 历史数据
-    # Qot_GetHistoryKL = 3100  # 获取历史K线
-    # Qot_GetHistoryKLPoints = 3101  # 获取多只股票历史单点K线
-    # Qot_GetRehab = 3102  # 获取复权信息
     Qot_RequestHistoryKL = 3103  # 拉取历史K线
     Qot_RequestHistoryKLQuota = 3104  # 拉取历史K线已经用掉的额度
     Qot_RequestRehab = 3105  # 获取除权信息
@@ -90,7 +87,7 @@ class ProtoId(object):
     Qot_GetOrderDetail = 3016           # 获取委托明细
     Qot_UpdateOrderDetail = 3017        # 推送委托明细
 
-    Qot_GetWarrant = 3210          # 拉取涡轮信息
+    Qot_GetWarrant = 3210          # 拉取窝轮信息
     Qot_GetCapitalFlow = 3211          # 获取资金流向
     Qot_GetCapitalDistribution = 3212  # 获取资金分布
 
@@ -104,7 +101,8 @@ class ProtoId(object):
     Qot_SetPriceReminder = 3220  # 设置到价提醒
     Qot_GetPriceReminder = 3221  # 获取到价提醒
 
-    Qot_GetUserSecurityGroup = 3222 # 获取自选股分组
+    Qot_GetUserSecurityGroup = 3222  # 获取自选股分组
+    Qot_GetMarketState = 3223  # 获取指定品种的市场状态
     All_PushId = [Notify, KeepAlive, Trd_UpdateOrder, Trd_UpdateOrderFill, Qot_UpdateBroker,
                   Qot_UpdateOrderBook, Qot_UpdateKL, Qot_UpdateRT, Qot_UpdateBasicQot, Qot_UpdateTicker, Qot_UpdatePriceReminder]
 
@@ -347,6 +345,9 @@ class MarketState(FtEnum):
     FUTURE_BREAK = "FUTURE_BREAK"                   # 期货中盘休息
     FUTURE_BREAK_OVER = "FUTURE_BREAK_OVER"         # 期货休息后开盘
     FUTURE_CLOSE = "FUTURE_CLOSE"                   # 期货收盘
+    STIB_AFTER_HOURS_WAIT = "STIB_AFTER_HOURS_WAIT"  #科创板的盘后撮合时段
+    STIB_AFTER_HOURS_BEGIN = "STIB_AFTER_HOURS_BEGIN"  # 科创板的盘后交易开始
+    STIB_AFTER_HOURS_END = "STIB_AFTER_HOURS_END"  # 科创板的盘后交易结束
 
     def load_dic(self):
         return {
@@ -375,6 +376,9 @@ class MarketState(FtEnum):
             self.FUTURE_BREAK: Qot_Common_pb2.QotMarketState_FutureBreak,
             self.FUTURE_BREAK_OVER: Qot_Common_pb2.QotMarketState_FutureBreakOver,
             self.FUTURE_CLOSE: Qot_Common_pb2.QotMarketState_FutureClose,
+            self.STIB_AFTER_HOURS_WAIT: Qot_Common_pb2.QotMarketState_StibAfterHoursWait,
+            self.STIB_AFTER_HOURS_BEGIN: Qot_Common_pb2.QotMarketState_StibAfterHoursBegin,
+            self.STIB_AFTER_HOURS_END: Qot_Common_pb2.QotMarketState_StibAfterHoursEnd,
         }
 
 # 股票类型
@@ -389,7 +393,7 @@ class SecurityType(FtEnum):
      ..  py:attribute:: ETF
       交易所交易基金(Exchange Traded Funds)
      ..  py:attribute:: WARRANT
-      港股涡轮牛熊证
+      港股窝轮牛熊证
      ..  py:attribute:: BOND
       债券
     ..  py:attribute:: DRVT
@@ -1354,7 +1358,7 @@ class WrtType(FtEnum):
 '''-------------------------SortField----------------------------'''
 
 
-# 涡轮排序
+# 窝轮排序
 class SortField(FtEnum):
     NONE = "N/A"                                       # 未知
     CODE = "CODE"                                      # 代码
@@ -1468,7 +1472,7 @@ class SortField(FtEnum):
 '''-------------------------IpoPeriod----------------------------'''
 
 
-# 涡轮上市日
+# 窝轮上市日
 class IpoPeriod(FtEnum):
     NONE = "N/A"                                       # 未知
     TODAY = "TODAY"                                    # 今日上市
@@ -1491,7 +1495,7 @@ class IpoPeriod(FtEnum):
 '''-------------------------PriceType----------------------------'''
 
 
-# 涡轮价外/内,界内证表示界内界外
+# 窝轮价外/内,界内证表示界内界外
 class PriceType(FtEnum):
     NONE = "N/A"                                       # 未知
     OUTSIDE = "OUTSIDE"                                # 价外,界内证表示界外
@@ -1508,7 +1512,7 @@ class PriceType(FtEnum):
 '''-------------------------WarrantStatus----------------------------'''
 
 
-# 涡轮状态
+# 窝轮状态
 class WarrantStatus(FtEnum):
     NONE = "N/A"                                       # 未知
     NORMAL = "NORMAL"                                  # 正常状态
@@ -1529,7 +1533,7 @@ class WarrantStatus(FtEnum):
 '''-------------------------Issuer----------------------------'''
 
 
-# 涡轮发行人
+# 窝轮发行人
 class Issuer(FtEnum):
     NONE = "N/A"                                       # 未知
     SG = "SG"                                          # 法兴
@@ -1555,6 +1559,7 @@ class Issuer(FtEnum):
     VT = "VT"                                          # 瑞通
     KC = "KC"                                          # 比联
     MS = "MS"                                          # 摩利
+    GJ = "GJ"                                          # 国君
 
     def load_dic(self):
         return {
@@ -1581,7 +1586,8 @@ class Issuer(FtEnum):
             self.HT: Qot_Common_pb2.Issuer_HT,
             self.VT: Qot_Common_pb2.Issuer_VT,
             self.KC: Qot_Common_pb2.Issuer_KC,
-            self.MS: Qot_Common_pb2.Issuer_MS
+            self.MS: Qot_Common_pb2.Issuer_MS,
+            self.GJ: Qot_Common_pb2.Issuer_GJ
         }
 
 
@@ -2247,6 +2253,33 @@ class CltRiskLevel(FtEnum):
             self.OPT_DANGER: Trd_Common_pb2.CltRiskLevel_OptDanger
         }
 
+
+class CltRiskStatus(FtEnum):
+    NONE = 'N/A'
+    LEVEL1 = 'LEVEL1'
+    LEVEL2 = 'LEVEL2'
+    LEVEL3 = 'LEVEL3'
+    LEVEL4 = 'LEVEL4'
+    LEVEL5 = 'LEVEL5'
+    LEVEL6 = 'LEVEL6'
+    LEVEL7 = 'LEVEL7'
+    LEVEL8 = 'LEVEL8'
+    LEVEL9 = 'LEVEL9'
+
+    def load_dic(self):
+        return {
+            self.NONE: Trd_Common_pb2.CltRiskStatus_Unknown,
+            self.LEVEL1: Trd_Common_pb2.CltRiskStatus_Level1,
+            self.LEVEL2: Trd_Common_pb2.CltRiskStatus_Level2,
+            self.LEVEL3: Trd_Common_pb2.CltRiskStatus_Level3,
+            self.LEVEL4: Trd_Common_pb2.CltRiskStatus_Level4,
+            self.LEVEL5: Trd_Common_pb2.CltRiskStatus_Level5,
+            self.LEVEL6: Trd_Common_pb2.CltRiskStatus_Level6,
+            self.LEVEL7: Trd_Common_pb2.CltRiskStatus_Level7,
+            self.LEVEL8: Trd_Common_pb2.CltRiskStatus_Level8,
+            self.LEVEL9: Trd_Common_pb2.CltRiskStatus_Level9,
+        }
+
 class TradeDateMarket(FtEnum):
     NONE = 'N/A'  # 未知
     HK = 'HK'  # 港股市场
@@ -2272,6 +2305,7 @@ class SetPriceReminderOp(FtEnum):
     ENABLE = "ENABLE"                                  # 启用
     DISABLE = "DISABLE"                                # 禁用
     MODIFY = "MODIFY"                                  # 修改
+    DEL_ALL = "DEL_ALL"                                # 删除某支股票下所有到价提醒
 
     def load_dic(self):
         return {
@@ -2280,7 +2314,8 @@ class SetPriceReminderOp(FtEnum):
             self.DEL: Qot_SetPriceReminder_pb2.SetPriceReminderOp_Del,
             self.ENABLE: Qot_SetPriceReminder_pb2.SetPriceReminderOp_Enable,
             self.DISABLE: Qot_SetPriceReminder_pb2.SetPriceReminderOp_Disable,
-            self.MODIFY: Qot_SetPriceReminder_pb2.SetPriceReminderOp_Modify
+            self.MODIFY: Qot_SetPriceReminder_pb2.SetPriceReminderOp_Modify,
+            self.DEL_ALL: Qot_SetPriceReminder_pb2.SetPriceReminderOp_DelAll,
         }
 
 class PriceReminderFreq(FtEnum):
@@ -2359,4 +2394,64 @@ class UserSecurityGroupType(FtEnum):
             self.CUSTOM: Qot_GetUserSecurityGroup_pb2.GroupType_Custom,
             self.SYSTEM: Qot_GetUserSecurityGroup_pb2.GroupType_System,
             self.ALL: Qot_GetUserSecurityGroup_pb2.GroupType_All
+        }
+
+# 资产类别
+class AssetClass(FtEnum):
+    NONE = "N/A"  # 未知
+    STOCK = "STOCK"  # 股票
+    BOND = "BOND" # 债券
+    COMMODITY = "COMMODITY"  # 商品
+    CURRENCY_MARKET = "CURRENCY_MARKET"  # 货币市场
+    FUTURE = "FUTURE"  # 期货
+    SWAP = "SWAP"  # 掉期
+
+    def load_dic(self):
+        return {
+            self.NONE: Qot_Common_pb2.AssetClass_Unknow,
+            self.STOCK: Qot_Common_pb2.AssetClass_Stock,
+            self.BOND: Qot_Common_pb2.AssetClass_Bond,
+            self.COMMODITY: Qot_Common_pb2.AssetClass_Commodity,
+            self.CURRENCY_MARKET: Qot_Common_pb2.AssetClass_CurrencyMarket,
+            self.FUTURE: Qot_Common_pb2.AssetClass_Future,
+            self.SWAP: Qot_Common_pb2.AssetClass_Swap,
+        }
+
+
+# 订单有效期
+class TimeInForce(FtEnum):
+    DAY = 'DAY'   # 当日有效
+    GTC = 'GTC'   # 撤单前有效
+
+    def load_dic(self):
+        return {
+            self.DAY: Trd_Common_pb2.TimeInForce_DAY,
+            self.GTC: Trd_Common_pb2.TimeInForce_GTC
+        }
+
+
+# 券商
+class SecurityFirm(FtEnum):
+    NONE = 'N/A'
+    FUTUSECURITIES = 'FUTUSECURITIES'
+    FUTUINC = 'FUTUINC'
+
+    def load_dic(self):
+        return {
+            self.NONE: Trd_Common_pb2.SecurityFirm_Unknown,
+            self.FUTUSECURITIES: Trd_Common_pb2.SecurityFirm_FutuSecurities,
+            self.FUTUINC: Trd_Common_pb2.SecurityFirm_FutuInc
+        }
+
+# 模拟交易账号类型
+class SimAccType(FtEnum):
+    NONE = 'N/A'
+    STOCK = 'STOCK'
+    OPTION = 'OPTION'
+
+    def load_dic(self):
+        return {
+            self.NONE: Trd_Common_pb2.SimAccType_Unknown,
+            self.STOCK: Trd_Common_pb2.SimAccType_Stock,
+            self.OPTION: Trd_Common_pb2.SimAccType_Option
         }
