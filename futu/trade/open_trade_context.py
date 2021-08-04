@@ -103,7 +103,7 @@ class OpenTradeContextBase(OpenContextBase):
                 return RET_OK, Err.NoNeedUnlock.text
 
             if password is None and password_md5 is None:
-                return RET_ERROR, make_msg(Err.ParamErr, password=password, password_md5=password_md5)
+                return RET_ERROR, 'Missing necessary parameter. One of the two parameters (password and password_md5) is required.'
 
             md5_val = str(password_md5) if password_md5 else md5_transform(str(password))
 
@@ -358,8 +358,8 @@ class OpenTradeContextBase(OpenContextBase):
             "code", "stock_name", "qty", "can_sell_qty", "cost_price",
             "cost_price_valid", "market_val", "nominal_price", "pl_ratio",
             "pl_ratio_valid", "pl_val", "pl_val_valid", "today_buy_qty",
-            "today_buy_val", "today_pl_val", "today_sell_qty", "today_sell_val",
-            "position_side", "unrealized_pl", "realized_pl"
+            "today_buy_val", "today_pl_val", "today_trd_val", "today_sell_qty",
+            "today_sell_val", "position_side", "unrealized_pl", "realized_pl"
         ]
 
         position_list_table = pd.DataFrame(position_list, columns=col_list)
@@ -797,6 +797,36 @@ class OpenTradeContextBase(OpenContextBase):
         acctradinginfo_table = pd.DataFrame(data, columns=col_list)
         return RET_OK, acctradinginfo_table
 
+    def get_margin_ratio(self, code_list):
+        code_list = unique_and_normalize_list(code_list)
+        if not code_list:
+            error_str = ERROR_STR_PREFIX + "the type of code param is wrong"
+            return RET_ERROR, error_str
+
+        ret, msg, acc_id = self._check_acc_id_and_acc_index(TrdEnv.REAL, 0, 0)
+        if ret != RET_OK:
+            return ret, msg
+
+        query_processor = self._get_sync_query_processor(
+            MarginRatio.pack_req, MarginRatio.unpack_rsp)
+        kargs = {
+            "code_list": code_list,
+            "conn_id": self.get_sync_conn_id(),
+            "acc_id": acc_id,
+            'trd_mkt': self.__trd_mkt,
+        }
+
+        ret_code, msg, margin_ratio_list = query_processor(**kargs)
+        if ret_code != RET_OK:
+            return RET_ERROR, msg
+
+        col_list = [
+            "code", "is_long_permit", "is_short_permit", "short_pool_remain", "short_fee_rate", "alert_long_ratio",
+            "alert_short_ratio", "im_long_ratio", "im_short_ratio", "mcm_long_ratio", 'mcm_short_ratio', "mm_long_ratio", 'mm_short_ratio'
+        ]
+        margin_ratio_table = pd.DataFrame(margin_ratio_list, columns=col_list)
+
+        return RET_OK, margin_ratio_table
 
 # 港股交易接口
 class OpenHKTradeContext(OpenTradeContextBase):

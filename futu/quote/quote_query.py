@@ -198,75 +198,6 @@ class InitConnect:
             return RET_ERROR, "rsp_pb error", None
 
         return RET_OK, "", res
-
-
-class TradeDayQuery:
-    """
-    Query Conversion for getting trading days.
-    """
-
-    def __init__(self):
-        pass
-
-    @classmethod
-    def pack_req(cls, market, conn_id, start_date=None, end_date=None):
-
-        # '''Parameter check'''
-        r, mkt = Market.to_number(market)
-        if not r:
-            error_str = ERROR_STR_PREFIX + " market is %s, which is not valid. (%s)" \
-                                           % (market, Market.get_all_keys())
-            return RET_ERROR, error_str, None
-
-        if start_date is None:
-            today = datetime.today()
-            start = today - timedelta(days=365)
-
-            start_date = start.strftime("%Y-%m-%d")
-        else:
-            ret, msg = normalize_date_format(start_date)
-            if ret != RET_OK:
-                return ret, msg, None
-            start_date = msg
-
-        if end_date is None:
-            today = datetime.today()
-            end_date = today.strftime("%Y-%m-%d")
-        else:
-            ret, msg = normalize_date_format(end_date)
-            if ret != RET_OK:
-                return ret, msg, None
-            end_date = msg
-
-        # pack to json
-        from futu.common.pb.Qot_GetTradeDate_pb2 import Request
-        req = Request()
-        req.c2s.market = mkt
-        req.c2s.beginTime = start_date
-        req.c2s.endTime = end_date
-
-        return pack_pb_req(req, ProtoId.Qot_GetTradeDate, conn_id)
-
-    @classmethod
-    def unpack_rsp(cls, rsp_pb):
-
-        # response check and unpack response json to objects
-        ret_type = rsp_pb.retType
-        ret_msg = rsp_pb.retMsg
-
-        if ret_type != RET_OK:
-            return RET_ERROR, ret_msg, None
-
-        raw_trading_day_list = rsp_pb.s2c.tradeDateList
-        trading_day_list = list()
-
-        for x in raw_trading_day_list:
-            if x.time is not None and len(x.time) > 0:
-                trading_day_list.append(
-                    {"time": x.time, "trade_date_type": TradeDateType.to_string2(x.tradeDateType) if x.HasField('tradeDateType') else 'N/A'})# 初始化枚举类型
-
-        return RET_OK, "", trading_day_list
-
 class RequestTradeDayQuery:
     """
     Query Conversion for getting trading days.
@@ -276,7 +207,7 @@ class RequestTradeDayQuery:
         pass
 
     @classmethod
-    def pack_req(cls, market, conn_id, start_date=None, end_date=None):
+    def pack_req(cls, market, conn_id, start_date=None, end_date=None, code=None):
 
         # '''Parameter check'''
         r, v = TradeDateMarket.to_number(market)
@@ -285,7 +216,7 @@ class RequestTradeDayQuery:
                                            % (market)
             return RET_ERROR, error_str, None
 
-        if start_date is None:
+        if start_date is None: # start为往前365天
             today = datetime.today()
             start = today - timedelta(days=365)
 
@@ -296,7 +227,7 @@ class RequestTradeDayQuery:
                 return ret, msg, None
             start_date = msg
 
-        if end_date is None:
+        if end_date is None: # end为当前时间
             today = datetime.today()
             end_date = today.strftime("%Y-%m-%d")
         else:
@@ -305,12 +236,26 @@ class RequestTradeDayQuery:
                 return ret, msg, None
             end_date = msg
 
+        """check stock_code 股票"""
+        market_code = None
+        stock_code = None
+        if code is not None:
+            ret, content = split_stock_str(code)
+            if ret == RET_ERROR:
+                error_str = content
+                return RET_ERROR, error_str, None
+            market_code, stock_code = content
+
         # pack to json
         from futu.common.pb.Qot_RequestTradeDate_pb2 import Request
         req = Request()
         req.c2s.market = v
         req.c2s.beginTime = start_date
         req.c2s.endTime = end_date
+        if market_code is not None:
+            req.c2s.security.market = market_code
+        if stock_code is not None:
+            req.c2s.security.code = stock_code
 
         return pack_pb_req(req, ProtoId.Qot_RequestTradeDate, conn_id)
 
@@ -1541,6 +1486,10 @@ class GlobalStateQuery:
             'market_hk': MarketState.to_string2(state.marketHK) if state.HasField('marketHK') else 'N/A',# 初始化枚举类型
             'market_hkfuture': MarketState.to_string2(state.marketHKFuture) if state.HasField('marketHKFuture') else 'N/A',# 初始化枚举类型
             'market_usfuture': MarketState.to_string2(state.marketUSFuture) if state.HasField('marketUSFuture') else 'N/A',# 初始化枚举类型
+            'market_sgfuture': MarketState.to_string2(state.marketSGFuture) if state.HasField(
+                'marketSGFuture') else 'N/A',  # 初始化枚举类型
+            'market_jpfuture': MarketState.to_string2(state.marketJPFuture) if state.HasField(
+                'marketJPFuture') else 'N/A',  # 初始化枚举类型
             'server_ver': str(state.serverVer),
             'trd_logined': state.trdLogined,
             'timestamp': str(state.time),
@@ -1975,62 +1924,6 @@ class OptionChain:
 
         return RET_OK, "", data_list
 
-
-class OrderDetail:
-    """
-    Query Conversion for getting order detail information.
-    """
-
-    def __init__(self):
-        pass
-
-    @classmethod
-    def pack_req(cls, code, conn_id):
-
-        ret, content = split_stock_str(code)
-        if ret == RET_ERROR:
-            error_str = content
-            return RET_ERROR, error_str, None
-
-        market_code, stock_code = content
-
-        from futu.common.pb.Qot_GetOrderDetail_pb2 import Request
-        req = Request()
-        req.c2s.security.market = market_code
-        req.c2s.security.code = stock_code
-
-        return pack_pb_req(req, ProtoId.Qot_GetOrderDetail, conn_id)
-
-    @classmethod
-    def unpack_rsp(cls, rsp_pb):
-        if rsp_pb.retType != RET_OK:
-            return RET_ERROR, rsp_pb.retMsg, None
-
-        code = merge_qot_mkt_stock_str(
-            int(rsp_pb.s2c.security.market), rsp_pb.s2c.security.code)
-        ask = [0, []]
-        bid = [0, []]
-        svr_recv_time_bid = rsp_pb.s2c.svrRecvTimeBid
-        svr_recv_time_ask = rsp_pb.s2c.svrRecvTimeAsk
-
-        ask[0] = rsp_pb.s2c.orderDetailAsk.orderCount
-        for vol in rsp_pb.s2c.orderDetailAsk.orderVol:
-            ask[1].append(vol)
-
-        bid[0] = rsp_pb.s2c.orderDetailBid.orderCount
-        for vol in rsp_pb.s2c.orderDetailBid.orderVol:
-            bid[1].append(vol)
-
-        data = {
-            'code': code,
-            'Ask': ask,
-            'Bid': bid,
-            'svr_recv_time_ask': svr_recv_time_ask,
-            'svr_recv_time_bid': svr_recv_time_bid
-        }
-        return RET_OK, "", data
-
-
 class QuoteWarrant:
     """
     拉取窝轮
@@ -2213,6 +2106,10 @@ class GetUserInfo:
             'hkFutureQotRight') else "N/A"
         us_qot_right = rsp_pb.s2c.usQotRight if rsp_pb.s2c.HasField(
             'usQotRight') else "N/A"
+        us_option_qot_right = rsp_pb.s2c.usOptionQotRight if rsp_pb.s2c.HasField(
+            'usOptionQotRight') else "N/A"
+        us_future_qot_right = rsp_pb.s2c.usFutureQotRight if rsp_pb.s2c.HasField(
+            'usFutureQotRight') else "N/A"
         cn_qot_right = rsp_pb.s2c.cnQotRight if rsp_pb.s2c.HasField(
             'cnQotRight') else "N/A"
         is_need_agree_disclaimer = rsp_pb.s2c.isNeedAgreeDisclaimer if rsp_pb.s2c.HasField(
@@ -2231,6 +2128,8 @@ class GetUserInfo:
             "hk_option_qot_right": QotRight.to_string2(hk_option_qot_right),
             "hk_future_qot_right": QotRight.to_string2(hk_future_qot_right),
             "us_qot_right": QotRight.to_string2(us_qot_right),
+            "us_option_qot_right": QotRight.to_string2(us_option_qot_right),
+            "us_future_qot_right": QotRight.to_string2(us_future_qot_right),
             "cn_qot_right": QotRight.to_string2(cn_qot_right),
             "is_need_agree_disclaimer": is_need_agree_disclaimer,
             "user_id": user_id,
@@ -3121,4 +3020,49 @@ class GetMarketStateQuery:
             data["stock_name"] = item.name
             #  Qot_Common.QotMarketState,市场状态 type = int32
             data["market_state"] = MarketState.to_string2(item.marketState)if item.HasField('marketState') else 'N/A' # 初始化枚举类型
+        return RET_OK, "", ret_list
+
+class GetOptionExpirationDate:
+    """
+    Query GetOptionExpirationDate.
+    """
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def pack_req(cls, code, index_option_type, conn_id):
+        ret, content = split_stock_str(code)
+        if ret == RET_ERROR:
+            error_str = content
+            return RET_ERROR, error_str, None
+
+        market_code, stock_code = content
+
+        r, index_option_type = IndexOptionType.to_number(index_option_type)
+        if r is False:
+            index_option_type = None
+
+        from futu.common.pb.Qot_GetOptionExpirationDate_pb2 import Request
+        req = Request()
+        req.c2s.owner.market = market_code
+        req.c2s.owner.code = stock_code
+        if index_option_type is not None:
+            req.c2s.indexOptionType = index_option_type
+
+        return pack_pb_req(req, ProtoId.Qot_GetOptionExpirationDate, conn_id)
+
+    @classmethod
+    def unpack(cls, rsp_pb):
+        if rsp_pb.retType != RET_OK:
+            return RET_ERROR, rsp_pb.retMsg, None
+
+        ret_list = list()
+        expiration_date_list = rsp_pb.s2c.dateList
+        for item in expiration_date_list:
+            data = {}
+            ret_list.append(data)
+            data["strike_time"] = item.strikeTime if item.HasField('strikeTime') else ' '
+            data["option_expiry_date_distance"] = item.optionExpiryDateDistance
+            data["expiration_cycle"] = ExpirationCycle.to_string2(item.cycle) if item.HasField('cycle') else 'N/A'
         return RET_OK, "", ret_list
