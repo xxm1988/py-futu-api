@@ -303,7 +303,7 @@ def save_data(symbol,data_queue):
 class FutuDataSave(object):
     def __init__(self):
         self.quote_ctx = ft.OpenQuoteContext(host='127.0.0.1', port=11111)
-        from futu import mytool
+        import mytool
         fsw_obj = mytool.FindStockWarrent(self.quote_ctx, "HK.800000")
         bear_list_800000, bull_list_800000 = fsw_obj.get_best_warrant()
 
