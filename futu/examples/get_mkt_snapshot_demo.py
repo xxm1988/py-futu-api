@@ -26,8 +26,10 @@ def loop_get_mkt_snapshot(api_svr_ip, api_svr_port, market):
         if ret_code == 0:
             print("get_stock_basicinfo: market={}, sub_type={}, count={}".format(market, sub_type, len(ret_data)))
             for ix, row in ret_data.iterrows():
+                print(row)
                 stock_codes.append(row['code'])
-
+    return 
+    
     if len(stock_codes) == 0:
         quote_ctx.close()
         print("Error market:'{}' can not get stock info".format(market))
