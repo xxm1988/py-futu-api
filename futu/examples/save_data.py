@@ -13,7 +13,7 @@ from datetime import datetime
 import multiprocessing
 
 
-class SaveTickData():
+class SavePushData():
     def __init__(self,stock_code,data_date=None):
         self.stock_code  = stock_code.split('.')[1]
         if data_date:
@@ -96,12 +96,8 @@ class SaveTickData():
         sql_cmd_create = """create TABLE IF NOT EXISTS  stock_ref_warrant (
                             [code] TEXT,
                             [date] DATE,
-                            [bull_1] TEXT,
-                            [bull_2] TEXT,
-                            [bull_3] TEXT,
-                            [bear_1] TEXT,
-                            [bear_2] TEXT,
-                            [bear_3] TEXT,
+                            [bull_list] TEXT,                          
+                            [bear_list] TEXT,
                             PRIMARY KEY([code], [date])) """
         self.exe_sql(sql_cmd_create,db='war')
 
@@ -110,10 +106,10 @@ class SaveTickData():
                             [code] TEXT,
                             [time] DATETIME,
                             [price] FLOAT,
-                            [volume] FLOAT,
+                            [volume] INT,
                             [turnover] FLOAT,
                             [ticker_direction] TEXT,
-                            [sequence] REAL,
+                            [sequence] BIGINT,
                             [type] TEXT,
                             [push_data_type] TEXT) """  % self.stock_code
         self.exe_sql(sql_cmd_create,db='tick')
@@ -128,7 +124,8 @@ class SaveTickData():
                             [last_close] FLOAT,
                             [avg_price] FLOAT,
                             [turnover] FLOAT,
-                            [volume] FLOAT) """  % self.stock_code
+                            [volume] FLOAT,
+                            [save_time] FLOAT) """  % self.stock_code
         self.exe_sql(sql_cmd_create,db='rt')
 
     def create_quote_table(self):
@@ -194,9 +191,8 @@ class SaveTickData():
         self.exe_sql(sql_cmd_create,db='order')
 
     def save_data_warrant(self,bull_list,bear_list):
-        sql_cmd = """ replace into stock_ref_warrant(code,date,bull_1,bull_2,bull_3,bear_1,bear_2,bear_3) 
-                      values('%s','%s','%s','%s','%s','%s','%s','%s') 
-                  """ % (self.stock_code,datetime.now().strftime('%Y-%m-%d'),bull_list[0],bull_list[1],bull_list[2],bear_list[0],bear_list[1],bear_list[2])
+        sql_cmd = """ replace into stock_ref_warrant(code,date,bull_list,bear_list) values('%s','%s','%s','%s') 
+        """ % (self.stock_code,datetime.now().strftime('%Y-%m-%d'),json.dumps(bull_list),json.dumps(bear_list))
         result = self.exe_sql(sql_cmd,db='war')
         return result
 
@@ -209,10 +205,10 @@ class SaveTickData():
         return result
 
     def save_data_rt(self,data_list):
-        sql_cmd = """ replace into rt_data_%s(code,time,is_blank,opened_mins,cur_price,last_close,avg_price,turnover,volume) values(?,?,?,?,?,?,?,?,?) """ % self.stock_code
+        sql_cmd = """ replace into rt_data_%s(code,time,is_blank,opened_mins,cur_price,last_close,avg_price,turnover,volume,save_time) values(?,?,?,?,?,?,?,?,?,?) """ % self.stock_code
         insertItemList = []
         for row in data_list:
-            insertItemList.append((row['code'],row['time'],row['is_blank'],row['opened_mins'],row['cur_price'],row['last_close'],row['avg_price'],row['turnover'],row['volume'] ))
+            insertItemList.append((row['code'],row['time'],row['is_blank'],row['opened_mins'],row['cur_price'],row['last_close'],row['avg_price'],row['turnover'],row['volume'],row['save_time'] ))
         result = self.exe_sql_many(sql_cmd,insertItemList,db='rt')
         return result
 
@@ -292,7 +288,7 @@ class SaveTickData():
 
 
 def save_data(symbol,data_queue):
-    stdObj = SaveTickData(symbol)
+    stdObj = SavePushData(symbol)
     stdObj.create_tick_table()
     stdObj.create_rt_table()
     stdObj.create_quote_table()
@@ -303,6 +299,15 @@ def save_data(symbol,data_queue):
 class FutuDataSave(object):
     def __init__(self):
         self.quote_ctx = ft.OpenQuoteContext(host='127.0.0.1', port=11111)
+
+        self.symbol_pools = ['HK.00700', 'HK.800000']
+        # 获取top市值 200的正股
+        import filter_stock
+        code_list = filter_stock.FilterStock(self.quote_ctx).get_hk_val_top(num=50)
+        for code in code_list:
+            self.symbol_pools.append(code)
+
+        # 获取最佳牛熊
         import mytool
         fsw_obj = mytool.FindStockWarrent(self.quote_ctx, "HK.800000")
         bear_list_800000, bull_list_800000 = fsw_obj.get_best_warrant()
@@ -310,26 +315,29 @@ class FutuDataSave(object):
         fsw_obj = mytool.FindStockWarrent(self.quote_ctx, "HK.00700")
         bear_list_00700, bull_list_00700 = fsw_obj.get_best_warrant()
 
-        std_obj = SaveTickData(stock_code="HK.800000")
+        std_obj = SavePushData(stock_code="HK.800000")
         std_obj.create_warrant_table()
         std_obj.save_data_warrant(bull_list_800000, bear_list_800000)
 
-        std_obj = SaveTickData(stock_code="HK.00700")
+        std_obj = SavePushData(stock_code="HK.00700")
         std_obj.create_warrant_table()
         std_obj.save_data_warrant(bull_list_00700, bear_list_00700)
-
-        self.symbol_pools = ['HK.00700', 'HK.800000']
+        
         self.data_queue_dict = {}
         for i in range(3):
             if bear_list_800000[i]:
-                self.symbol_pools.append(json.loads(bear_list_800000[i])['stock'])
+                self.symbol_pools.append(bear_list_800000[i]['stock'])
             if bull_list_800000[i]:
-                self.symbol_pools.append(json.loads(bull_list_800000[i])['stock'])
+                self.symbol_pools.append(bull_list_800000[i]['stock'])
             if bear_list_00700[i]:
-                self.symbol_pools.append(json.loads(bear_list_00700[i])['stock'])
+                self.symbol_pools.append(bear_list_00700[i]['stock'])
             if bull_list_00700[i]:
-                self.symbol_pools.append(json.loads(bull_list_00700[i])['stock'])
+                self.symbol_pools.append(bull_list_00700[i]['stock'])
+        
+        self.symbol_pools = list(set(self.symbol_pools))
+        self.log("total symbol list length is %s" % len(self.symbol_pools))
         self.log("get symbol list is %s" % self.symbol_pools)
+
         for symbol in self.symbol_pools:
             self.data_queue_dict[symbol] = multiprocessing.Manager().Queue()
 
@@ -390,7 +398,7 @@ class FutuDataSave(object):
 
         # 设置回调处理对象
         self.quote_ctx.set_handler(QuoteHandler())
-        self.quote_ctx.set_handler(OrderBookHandler())
+        #self.quote_ctx.set_handler(OrderBookHandler())
         #self.quote_ctx.set_handler(CurKlineHandler())
         self.quote_ctx.set_handler(TickerHandler())
         self.quote_ctx.set_handler(RTDataHandler())
@@ -435,6 +443,7 @@ class FutuDataSave(object):
         print("rt data length is %s" % len(data))
         for ix, row in data.iterrows():
             rt_data = row.to_dict()
+            rt_data['save_time'] = time.time()
             self.log("rt data:" + json.dumps(rt_data, indent=4))
             self.data_queue_dict[rt_data['code']].put(["rt", rt_data])
         return True

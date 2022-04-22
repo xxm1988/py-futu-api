@@ -1812,6 +1812,7 @@ class OpenQuoteContext(OpenContextBase):
             return ret_code, msg
         else:
             warrant_data_list, last_page, all_count = content
+            print(len(warrant_data_list), last_page, all_count)
             col_list = ['stock', 'name', 'stock_owner', 'type', 'issuer', 'maturity_time',
                         'list_time', 'last_trade_time', 'recovery_price', 'conversion_ratio',
                         'lot_size', 'strike_price', 'last_close_price', 'cur_price', 'price_change_val', 'change_rate',

@@ -19,22 +19,23 @@ req = WarrantRequest()
 req.begin = 0
 req.num = 100
 req.sort_field = SortField.TURNOVER
-req.issuer_list = ['UB','CS','BI']
+#req.issuer_list = ['UB','CS','BI']
 req.ascend = True
 req.status = WarrantStatus.NORMAL  # Qot_Common.WarrantStatus, 窝轮状态
-req.street_min = 5    # 街货占比 % 过滤起点
-req.vol_min    = 0    # 成交量过滤起点
-req.maturity_time_min = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")  # 到期日, 到期日范围的开始时间戳
+req.street_min = 5       # 街货占比 % 过滤起点
+req.vol_min    = 1000    # 成交量过滤起点
+req.maturity_time_min = (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d")  # 到期日, 到期日范围的开始时间戳
+req.maturity_time_max = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%d")
 req.type_list = [WrtType.BULL, ]    # Qot_Common.WarrantType, 窝轮类型过滤列表 WrtType        
-req.price_recovery_ratio_min = 1    # 正股距回收价 % 过滤起点, 仅牛熊证支持该字段过滤
-req.price_recovery_ratio_max = 100  # 正股距回收价 % 过滤终点, 仅牛熊证支持该字段过滤
+req.price_recovery_ratio_min = -20    # 正股距回收价 % 过滤起点, 仅牛熊证支持该字段过滤
+req.price_recovery_ratio_max = 20  # 正股距回收价 % 过滤终点, 仅牛熊证支持该字段过滤
 
 ret, ls = quote_ctx.get_warrant(Market.HK, req)
 if ret == RET_OK: 
     warrant_data_list, last_page, all_count = ls
     print("length", len(warrant_data_list))
     print("all count:" , all_count)
-    #print(warrant_data_list)
+    print(warrant_data_list)
 else:
     print('error: ', ls)
 
