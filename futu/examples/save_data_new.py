@@ -39,7 +39,7 @@ class SaveDailyInfoData():
                             [date] DATE,
                             [top_val_list] TEXT, 
                             [top_turn_over_list] TEXT,                           
-                            PRIMARY KEY([code], [date])) """
+                            PRIMARY KEY([date])) """
         self.exe_sql(sql_cmd_create)
   
     def save_data_daily_info(self, top_val_list, top_turn_over_list):
@@ -78,12 +78,12 @@ class SaveWarrantData():
                             [bull_list] TEXT,                          
                             [bear_list] TEXT,
                             PRIMARY KEY([code], [date])) """
-        self.exe_sql(sql_cmd_create,db='war')
+        self.exe_sql(sql_cmd_create)
   
     def save_data_warrant(self, stock_code, bull_list, bear_list):
         sql_cmd = """ replace into stock_ref_warrant(code,date,bull_list,bear_list) values('%s','%s','%s','%s') 
         """ % (stock_code,datetime.now().strftime('%Y-%m-%d'),json.dumps(bull_list),json.dumps(bear_list))
-        result = self.exe_sql(sql_cmd,db='war')
+        result = self.exe_sql(sql_cmd)
         return result
 
 
@@ -100,15 +100,10 @@ class SavePushData():
             self.sqlitedb_quote = sqlite3.connect(u"D:\\StockData\\stock_quote_%s.db" % self.stock_code)
             self.sqlitedb_rt    = sqlite3.connect(u"D:\\StockData\\stock_rt_%s.db" % self.stock_code)           
         else:            
-            self.sqlitedb_tick  = sqlite3.connect(u"/data/ft_hist_data/ls/stock_tick_%s.db" % self.stock_code)
+            self.sqlitedb_tick  = sqlite3.connect(u"/data/ft_hist_data/push_data/stock_tick_%s.db" % self.stock_code)
             self.sqlitedb_quote = sqlite3.connect(u"/data/ft_hist_data/push_data/stock_quote_%s.db" % self.stock_code)
             self.sqlitedb_rt    = sqlite3.connect(u"/data/ft_hist_data/push_data/stock_rt_%s.db" % self.stock_code)
-            
-    def __del__(self):      
-        self.sqlitedb_tick.close()
-        self.sqlitedb_quote.close()
-        self.sqlitedb_rt.close()
-
+   
     def exe_sql(self,sql_cmd,db='tick'):
         if db == "tick":
             cu = self.sqlitedb_tick.cursor()
@@ -303,6 +298,8 @@ class SavePushData():
         last_time = time.time()
         now_time  = time.time()
         data_dict_list = {}
+        key = 'none'
+        data_dict_list[key] = []
         while True:
             if data_queue.qsize() == 0:
                 if now_time - last_time > 5 and len(data_dict_list[key]) > 0:
@@ -351,12 +348,14 @@ class FutuDataSave(object):
         self.symbol_pools = ['HK.00700', 'HK.800000']
         # 获取top市值100的正股
         import filter_stock
-        top_val_code_list = filter_stock.FilterStock(self.quote_ctx).get_hk_val_top(num=50)
+        top_val_code_list = filter_stock.FilterStock(self.quote_ctx).get_hk_val_top(num=10)
         self.symbol_pools += top_val_code_list
-        print("get top val code list is ", json.dumps(top_val_code_list, indent=4))
-        top_turnover_code_list = filter_stock.FilterStock(self.quote_ctx).get_hk_turnover_rate_top(num=50)
+        print("get top val code list length is ", len(top_val_code_list))
+        #print("get top val code list is ", json.dumps(top_val_code_list, indent=4))
+        top_turnover_code_list = filter_stock.FilterStock(self.quote_ctx).get_hk_turnover_rate_top(num=10)
         self.symbol_pools += top_turnover_code_list
-        print("get top turnover code list is ", json.dumps(top_turnover_code_list, indent=4))
+        print("get top val code list length is ", len(top_turnover_code_list))
+        #print("get top turnover code list is ", json.dumps(top_turnover_code_list, indent=4))
         sdi_obj = SaveDailyInfoData()
         sdi_obj.create_daily_info_table()
         sdi_obj.save_data_daily_info(top_val_code_list, top_turnover_code_list)
