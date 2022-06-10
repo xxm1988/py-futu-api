@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 '''
-@author: encorexiao@futunn.com
+@author: encorexiao
 @file: cal_k_line.py
 @time: 2020/10/13 20:46
 @desc:
@@ -94,8 +94,8 @@ class CalKline(object):
 
     def calculate(self):
         query_sql =  """ select * from tick_data_%s 
-                         where time>'%s 00:00:00' and time<'%s 23:59:59' 
-                         order by time """ % (self.stock_code, self.cal_date, self.cal_date)
+                            where time>'%s 00:00:00' and time<'%s 23:59:59' 
+                            order by time """ % (self.stock_code, self.cal_date, self.cal_date)
 
         df = pd.read_sql(query_sql, self.sqlitedb_tick)
         df = df.set_index(pd.DatetimeIndex(pd.to_datetime(df.time)))
@@ -105,8 +105,7 @@ class CalKline(object):
         df_turnover = df['turnover'].resample(self.k_type, label='right').sum()
 
         df_buy_volume = df[df['ticker_direction']=='BUY']['volume'].resample(self.k_type, label='right').sum()
-        df_buy_volume.rename('buy_volume', inplace=True)
-       
+        df_buy_volume.rename('buy_volume', inplace=True)       
         df_sell_volume = df[df['ticker_direction']=='SELL']['volume'].resample(self.k_type, label='right').sum()
         df_sell_volume.rename('sell_volume', inplace=True)
         df_neutral_volume = df[df['ticker_direction']=='NEUTRAL']['volume'].resample(self.k_type, label='right').sum()
@@ -120,7 +119,6 @@ class CalKline(object):
         print("save stock[%s] ktype [%s] line num [%s] to table [%s]" % (self.stock_code, self.k_type, len(df_all), self.k_line_table_name))     
         df_all.to_sql(name=self.k_line_table_name, con=self.sqlitedb_kline, if_exists='append', index=True)
 
-def cal_all_stock_kline()       
 
 if __name__ == "__main__":
     cal_obj = CalKline('HK.00700', cal_date='2020-10-12', k_type='3s')
